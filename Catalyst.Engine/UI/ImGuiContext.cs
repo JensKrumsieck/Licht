@@ -1,4 +1,5 @@
 ﻿using Catalyst.Engine.Graphics;
+using Catalyst.Pipeline;
 using ImGuiNET;
 using Silk.NET.Vulkan;
 
@@ -11,6 +12,7 @@ public class ImGuiContext : IDisposable
     private readonly DescriptorPool _descriptorPool;
     private readonly DescriptorSetLayout _descriptorSetLayout;
     private readonly DescriptorSet _descriptorSet;
+    private readonly ShaderEffect _shaderEffect;
     
     public ImGuiContext(GraphicsDevice device)
     {
@@ -41,7 +43,7 @@ public class ImGuiContext : IDisposable
                                   .WithSampler(0, DescriptorType.CombinedImageSampler, ShaderStageFlags.FragmentBit, _fontSampler)
                                   .CreateOn(device.Device);
         _descriptorSet = _descriptorPool.AllocateDescriptorSet(new[] {_descriptorSetLayout});
-        
+        _shaderEffect = ShaderEffect.BuildEffect(device.Device, UIShaders.VertexShader, UIShaders.FragmentShader, new[] {_descriptorSetLayout}, null);
     }
 
     public void Dispose()
@@ -50,6 +52,7 @@ public class ImGuiContext : IDisposable
         _descriptorPool.FreeDescriptorSet(_descriptorSet);
         _descriptorPool.Dispose();
         _descriptorSetLayout.Dispose();
+        _shaderEffect.Dispose();
         GC.SuppressFinalize(this);
     }
 }
