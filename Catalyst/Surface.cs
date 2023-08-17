@@ -11,7 +11,7 @@ public record struct SwapchainSupport(
     SurfaceFormatKHR[] Formats,
     PresentModeKHR[] PresentModes);
 
-public readonly unsafe struct Surface : IDisposable
+public readonly unsafe struct Surface : IDisposable, IConvertibleTo<SurfaceKHR>
 {
     public readonly SurfaceKHR VkSurface;
 
@@ -50,4 +50,6 @@ public readonly unsafe struct Surface : IDisposable
         _khrSurface.DestroySurface(_instance, VkSurface, null);
         _khrSurface.Dispose();
     }
+
+    public SurfaceKHR Convert() => VkSurface;
 }

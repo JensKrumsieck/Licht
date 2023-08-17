@@ -4,7 +4,7 @@ using Silk.NET.Vulkan.Extensions.EXT;
 
 namespace Catalyst;
 
-public readonly unsafe struct Instance : IDisposable
+public readonly unsafe struct Instance : IDisposable, IConvertibleTo<Silk.NET.Vulkan.Instance>
 {
     private readonly ExtDebugUtils _extDebugUtils;
     
@@ -73,4 +73,6 @@ public readonly unsafe struct Instance : IDisposable
         vk.DestroyInstance(VkInstance, null);
         _extDebugUtils.Dispose();
     }
+
+    public Silk.NET.Vulkan.Instance Convert() => VkInstance;
 }

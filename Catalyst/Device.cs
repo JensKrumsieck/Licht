@@ -4,7 +4,7 @@ using Silk.NET.Vulkan;
 
 namespace Catalyst;
 
-public readonly unsafe struct Device : IDisposable
+public readonly unsafe struct Device : IDisposable, IConvertibleTo<Silk.NET.Vulkan.Device>
 {
     public readonly uint MainQueueIndex = 0;
     public readonly Silk.NET.Vulkan.Device VkDevice;
@@ -55,6 +55,29 @@ public readonly unsafe struct Device : IDisposable
     }
 
     public void WaitIdle() => vk.DeviceWaitIdle(VkDevice);
+    public Result WaitForFence(Fence fence) => vk.WaitForFences(VkDevice, 1, fence, true, ulong.MaxValue);
+    public Result ResetFence(Fence fence) => vk.ResetFences(VkDevice, 1, fence);
+
+    public Result SubmitMainQueue(SubmitInfo submitInfo, Fence fence) => vk.QueueSubmit(MainQueue, 1, submitInfo, fence);
+
+    public CommandBuffer[] AllocateCommandBuffers(uint count, CommandPool commandPool)
+    {
+        var commandBuffers = new CommandBuffer[count];
+        var allocInfo = new CommandBufferAllocateInfo
+        {
+            SType = StructureType.CommandBufferAllocateInfo,
+            Level = CommandBufferLevel.Primary,
+            CommandPool = commandPool,
+            CommandBufferCount = count
+        };
+        fixed (void* pCommandBuffers = commandBuffers)
+            vk.AllocateCommandBuffers(VkDevice, allocInfo, (Silk.NET.Vulkan.CommandBuffer*)pCommandBuffers).Validate();
+        return commandBuffers;
+    }
+
+    public void FreeCommandBuffers(CommandBuffer[] commandBuffers, CommandPool commandPool) =>
+        vk.FreeCommandBuffers(VkDevice, commandPool, (uint) commandBuffers.Length,
+                              commandBuffers.AsArray<CommandBuffer, Silk.NET.Vulkan.CommandBuffer>());
 
     public Format FindFormat(Format[] candidates, ImageTiling tiling, FormatFeatureFlags formatFeatureFlags)
     {
@@ -78,7 +101,16 @@ public readonly unsafe struct Device : IDisposable
         return new AllocatedImage {Image = image, Allocation = allocation};
     }
 
+    public Sampler CreateSampler(SamplerCreateInfo createInfo)
+    {
+        vk.CreateSampler(VkDevice, createInfo, default, out var sampler).Validate();
+        return sampler;
+    }
+
+    public void DestroySampler(Sampler sampler) => vk.DestroySampler(VkDevice, sampler, null);
+    
     public static implicit operator Silk.NET.Vulkan.Device(Device d) => d.VkDevice;
 
     public void Dispose() => vk.DestroyDevice(VkDevice, null);
+    public Silk.NET.Vulkan.Device Convert() => VkDevice;
 }

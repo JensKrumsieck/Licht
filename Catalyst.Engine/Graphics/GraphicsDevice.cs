@@ -17,6 +17,7 @@ public sealed class GraphicsDevice : IDisposable
     public Device Device => _device;
     public Surface Surface => _surface;
     public IAllocator Allocator => _allocator;
+    public CommandPool CommandPool => _commandPool;
 
     public GraphicsDevice(IVkSurfaceSource window)
     {
@@ -30,7 +31,12 @@ public sealed class GraphicsDevice : IDisposable
 
     public SwapchainSupport GetSwapchainSupport() => _surface.GetSwapchainSupport(_physicalDevice);
     public void WaitIdle() => _device.WaitIdle();
-    
+
+    public CommandBuffer[] AllocateCommandBuffers(uint count) => _device.AllocateCommandBuffers(count, _commandPool);
+    public void FreeCommandBuffers(CommandBuffer[] commandBuffers) => _device.FreeCommandBuffers(commandBuffers, _commandPool);
+
+    public Sampler CreateSampler(SamplerCreateInfo info) => _device.CreateSampler(info);
+    public void DestroySampler(Sampler sampler) => _device.DestroySampler(sampler);
     public void Dispose()
     {
         _allocator.Dispose();

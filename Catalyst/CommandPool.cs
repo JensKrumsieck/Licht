@@ -3,7 +3,7 @@ using Silk.NET.Vulkan;
 
 namespace Catalyst;
 
-public readonly unsafe struct CommandPool : IDisposable
+public readonly unsafe struct CommandPool : IDisposable, IConvertibleTo<Silk.NET.Vulkan.CommandPool>
 {
     public readonly Silk.NET.Vulkan.CommandPool VkCommandPool;
     public ulong Handle => VkCommandPool.Handle;
@@ -27,4 +27,5 @@ public readonly unsafe struct CommandPool : IDisposable
     public static implicit operator Silk.NET.Vulkan.CommandPool(CommandPool c) => c.VkCommandPool;
 
     public void Dispose() => vk.DestroyCommandPool(_device, VkCommandPool, null);
+    public Silk.NET.Vulkan.CommandPool Convert() => VkCommandPool;
 }

@@ -2,16 +2,18 @@
 using Catalyst.Tools;
 using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.KHR;
+using Semaphore = Silk.NET.Vulkan.Semaphore;
 
 namespace Catalyst;
 
-public readonly unsafe struct Swapchain : IDisposable
+public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
 {
-    public const int MaxImagesInFlight = 2;
     private readonly Device _device;
 
+    public const int MaxImagesInFlight = 2;
     public readonly SwapchainKHR VkSwapchain;
     public int ImageCount => _swapchainImages.Length;
+    public Extent2D Extent => _extent;
 
     private readonly Image[] _swapchainImages;
     private readonly ImageView[] _swapchainImageViews;
@@ -20,12 +22,23 @@ public readonly unsafe struct Swapchain : IDisposable
     private readonly AllocatedImage[] _depthImages;
     private readonly ImageView[] _depthImageViews;
     private readonly Format _depthFormat;
-    
+
+    private readonly Fence[] _imagesInFlight;
+    private readonly Fence[] _inFlightFences;
+    private readonly Semaphore[] _imageAvailableSemaphores;
+    private readonly Semaphore[] _renderFinishedSemaphores;
+
+    public readonly Framebuffer[] Framebuffers;
+    public RenderPass RenderPass;
+
+
+    private int _currentFrame = 0;
     private readonly Extent2D _extent;
-    
+
     private readonly KhrSwapchain _khrSwapchain;
-    
-    public Swapchain(Device device, Surface surface, IAllocator allocator, Extent2D windowExtent, Swapchain? OldSwapchain = null)
+
+    public Swapchain(Device device, Surface surface, IAllocator allocator, Extent2D windowExtent,
+                     Swapchain? oldSwapchain = null)
     {
         _device = device;
         //create swapchain
@@ -54,7 +67,7 @@ public readonly unsafe struct Swapchain : IDisposable
             QueueFamilyIndexCount = 0,
             PQueueFamilyIndices = null,
             Clipped = true,
-            OldSwapchain = OldSwapchain ?? default
+            OldSwapchain = oldSwapchain ?? default
         };
 
         if (!vk.TryGetDeviceExtension(vk.CurrentInstance!.Value, _device, out _khrSwapchain))
@@ -66,7 +79,7 @@ public readonly unsafe struct Swapchain : IDisposable
         _swapchainImages = new Image[imageCount];
         fixed (Image* pSwapchainImages = _swapchainImages)
             _khrSwapchain.GetSwapchainImages(_device, VkSwapchain, &imageCount, pSwapchainImages);
-        
+
         _imageFormat = surfaceFormat.Format;
         _extent = extent;
 
@@ -77,7 +90,7 @@ public readonly unsafe struct Swapchain : IDisposable
             SType = StructureType.ImageViewCreateInfo,
             ViewType = ImageViewType.Type2D,
             Format = _imageFormat,
-            SubresourceRange = new(ImageAspectFlags.ColorBit, 0, 1, 0, 1)
+            SubresourceRange = new ImageSubresourceRange(ImageAspectFlags.ColorBit, 0, 1, 0, 1)
         };
         for (var i = 0; i < imageCount; i++)
         {
@@ -85,7 +98,7 @@ public readonly unsafe struct Swapchain : IDisposable
             vk.CreateImageView(_device, viewInfo, null, out var imageView).Validate();
             _swapchainImageViews[i] = imageView;
         }
-        
+
         //depth resources
         _depthFormat = device.FindFormat(new[] {Format.D32Sfloat, Format.D32SfloatS8Uint, Format.D24UnormS8Uint},
                                          ImageTiling.Optimal,
@@ -105,7 +118,7 @@ public readonly unsafe struct Swapchain : IDisposable
             InitialLayout = ImageLayout.Undefined,
             Usage = ImageUsageFlags.DepthStencilAttachmentBit,
             Samples = SampleCountFlags.Count1Bit,
-            SharingMode = SharingMode.Exclusive, 
+            SharingMode = SharingMode.Exclusive,
             Flags = 0
         };
         viewInfo = new ImageViewCreateInfo
@@ -123,7 +136,168 @@ public readonly unsafe struct Swapchain : IDisposable
             vk.CreateImageView(_device, viewInfo, null, out var view).Validate();
             _depthImageViews[i] = view;
         }
+
+        //sync resources
+        _imagesInFlight = new Fence[ImageCount];
+        _inFlightFences = new Fence[MaxImagesInFlight];
+        _imageAvailableSemaphores = new Semaphore[MaxImagesInFlight];
+        _renderFinishedSemaphores = new Semaphore[MaxImagesInFlight];
+
+        var semaphoreInfo = new SemaphoreCreateInfo {SType = StructureType.SemaphoreCreateInfo};
+        var fenceInfo = new FenceCreateInfo
+            {SType = StructureType.FenceCreateInfo, Flags = FenceCreateFlags.SignaledBit};
+        for (var i = 0; i < MaxImagesInFlight; i++)
+        {
+            vk.CreateSemaphore(_device, semaphoreInfo, null, out var availableSemaphore).Validate();
+            vk.CreateSemaphore(_device, semaphoreInfo, null, out var finishedSemaphore).Validate();
+            vk.CreateFence(_device, fenceInfo, null, out var fence).Validate();
+            _imageAvailableSemaphores[i] = availableSemaphore;
+            _renderFinishedSemaphores[i] = finishedSemaphore;
+            _inFlightFences[i] = fence;
+        }
+
+        //renderPass
+        var depthAttachment = new AttachmentDescription
+        {
+            Format = _depthFormat,
+            Samples = SampleCountFlags.Count1Bit,
+            LoadOp = AttachmentLoadOp.Clear,
+            StoreOp = AttachmentStoreOp.DontCare,
+            StencilLoadOp = AttachmentLoadOp.DontCare,
+            StencilStoreOp = AttachmentStoreOp.DontCare,
+            InitialLayout = ImageLayout.Undefined,
+            FinalLayout = ImageLayout.DepthStencilAttachmentOptimal
+        };
+
+        var depthAttachmentRef = new AttachmentReference
+        {
+            Attachment = 1,
+            Layout = ImageLayout.DepthStencilAttachmentOptimal
+        };
+
+        var colorAttachment = new AttachmentDescription
+        {
+            Format = _imageFormat,
+            Samples = SampleCountFlags.Count1Bit,
+            LoadOp = AttachmentLoadOp.Clear,
+            StoreOp = AttachmentStoreOp.Store,
+            StencilLoadOp = AttachmentLoadOp.DontCare,
+            StencilStoreOp = AttachmentStoreOp.DontCare,
+            InitialLayout = ImageLayout.Undefined,
+            FinalLayout = ImageLayout.PresentSrcKhr
+        };
+
+        var colorAttachmentRef = new AttachmentReference
+        {
+            Attachment = 0,
+            Layout = ImageLayout.ColorAttachmentOptimal
+        };
+
+        var subPass = new SubpassDescription
+        {
+            PipelineBindPoint = PipelineBindPoint.Graphics,
+            ColorAttachmentCount = 1,
+            PColorAttachments = &colorAttachmentRef,
+            PDepthStencilAttachment = &depthAttachmentRef
+        };
+
+        var dependency = new SubpassDependency
+        {
+            SrcSubpass = Vk.SubpassExternal,
+            SrcAccessMask = 0,
+            SrcStageMask = PipelineStageFlags.ColorAttachmentOutputBit | PipelineStageFlags.EarlyFragmentTestsBit,
+            DstSubpass = 0,
+            DstStageMask = PipelineStageFlags.ColorAttachmentOutputBit | PipelineStageFlags.EarlyFragmentTestsBit,
+            DstAccessMask = AccessFlags.ColorAttachmentWriteBit | AccessFlags.DepthStencilAttachmentWriteBit
+        };
+        var attachments = stackalloc[] {colorAttachment, depthAttachment};
+        var renderPassInfo = new RenderPassCreateInfo
+        {
+            SType = StructureType.RenderPassCreateInfo,
+            AttachmentCount = 2,
+            PAttachments = attachments,
+            SubpassCount = 1,
+            PSubpasses = &subPass,
+            DependencyCount = 1,
+            PDependencies = &dependency
+        };
+        vk.CreateRenderPass(_device, renderPassInfo, null, out RenderPass).Validate();
+        
+        //framebuffers
+        Framebuffers = new Framebuffer[ImageCount];
+        for (var i = 0; i < ImageCount; i++)
+            Framebuffers[i] = CreateFramebuffer(i);
     }
+
+    private Framebuffer CreateFramebuffer(int i)
+    {
+        var attachments = stackalloc[] {_swapchainImageViews[i], _depthImageViews[i]};
+        var createInfo = new FramebufferCreateInfo
+        {
+            SType = StructureType.FramebufferCreateInfo,
+            RenderPass = RenderPass,
+            AttachmentCount = 2,
+            PAttachments = attachments,
+            Width = _extent.Width,
+            Height = _extent.Height,
+            Layers = 1
+        };
+        vk.CreateFramebuffer(_device, createInfo, null, out var framebuffer).Validate();
+        return framebuffer;
+    }
+
+    public Result AcquireNextImage(ref uint imageIndex)
+    {
+        _device.WaitForFence(_inFlightFences[_currentFrame]);
+        return _khrSwapchain.AcquireNextImage(_device,
+                                              VkSwapchain,
+                                              ulong.MaxValue,
+                                              _imageAvailableSemaphores[_currentFrame],
+                                              default,
+                                              ref imageIndex);
+    }
+
+    public Result SubmitCommandBuffers(CommandBuffer cmd, uint imageIndex)
+    {
+        if (_imagesInFlight[imageIndex].Handle != 0) _device.WaitForFence(_imagesInFlight[imageIndex]);
+        _imagesInFlight[imageIndex] = _imagesInFlight[_currentFrame];
+        var waitSemaphores = _imageAvailableSemaphores[_currentFrame];
+        var signalSemaphores = _renderFinishedSemaphores[_currentFrame];
+        var waitStages = PipelineStageFlags.ColorAttachmentOutputBit;
+        var submitInfo = new SubmitInfo
+        {
+            SType = StructureType.SubmitInfo,
+            WaitSemaphoreCount = 1,
+            PWaitSemaphores = &waitSemaphores,
+            PWaitDstStageMask = &waitStages,
+            CommandBufferCount = 1,
+            PCommandBuffers = &cmd.VkCommandBuffer,
+            SignalSemaphoreCount = 1,
+            PSignalSemaphores = &signalSemaphores
+        };
+        _device.ResetFence(_inFlightFences[_currentFrame]);
+        _device.SubmitMainQueue(submitInfo, _inFlightFences[_currentFrame]);
+        var result = QueuePresent(signalSemaphores, imageIndex);
+        _currentFrame = (_currentFrame + 1) % MaxImagesInFlight;
+        return result;
+    }
+
+    private Result QueuePresent(Semaphore waitSemaphore, uint imageIndex)
+    {
+        var swapchain = VkSwapchain;
+        var presentInfo = new PresentInfoKHR
+        {
+            SType = StructureType.PresentInfoKhr,
+            WaitSemaphoreCount = 1,
+            PWaitSemaphores = &waitSemaphore,
+            SwapchainCount = 1,
+            PSwapchains = &swapchain,
+            PImageIndices = &imageIndex
+        };
+        return _khrSwapchain.QueuePresent(_device.MainQueue, presentInfo);
+    }
+    public (ImageView Color, ImageView Depth) GetAttachments(int index) =>
+        (_swapchainImageViews[index], _depthImageViews[index]);
 
     private static SurfaceFormatKHR SelectFormat(SurfaceFormatKHR[] formats)
     {
@@ -141,7 +315,7 @@ public readonly unsafe struct Swapchain : IDisposable
         actualExtent.Width = Math.Max(capabilities.MinImageExtent.Width,
                                       Math.Min(capabilities.MaxImageExtent.Width, actualExtent.Width));
         actualExtent.Height = Math.Max(capabilities.MinImageExtent.Height,
-                                   Math.Min(capabilities.MaxImageExtent.Height, actualExtent.Height));
+                                       Math.Min(capabilities.MaxImageExtent.Height, actualExtent.Height));
         return actualExtent;
     }
 
@@ -149,19 +323,36 @@ public readonly unsafe struct Swapchain : IDisposable
 
     public void Dispose()
     {
+        vk.DestroyRenderPass(_device, RenderPass, null);
         for (var i = 0; i < ImageCount; i++)
         {
             vk.DestroyImageView(_device, _swapchainImageViews[i], null);
             vk.DestroyImageView(_device, _depthImageViews[i], null);
             vk.DestroyImage(_device, _depthImages[i].Image, null);
             _depthImages[i].Allocation.Dispose();
+            vk.DestroyFence(_device, _imagesInFlight[i], null);
+            vk.DestroyFramebuffer(_device, Framebuffers[i], null);
         }
         Array.Clear(_depthImages);
         Array.Clear(_depthImageViews);
         Array.Clear(_swapchainImageViews);
+        Array.Clear(_imagesInFlight);
+        Array.Clear(Framebuffers);
+
+        for (var i = 0; i < MaxImagesInFlight; i++)
+        {
+            vk.DestroyFence(_device, _inFlightFences[i], null);
+            vk.DestroySemaphore(_device, _imageAvailableSemaphores[i], null);
+            vk.DestroySemaphore(_device, _renderFinishedSemaphores[i], null);
+        }
+        Array.Clear(_inFlightFences);
+        Array.Clear(_imageAvailableSemaphores);
+        Array.Clear(_renderFinishedSemaphores);
         
         _khrSwapchain.DestroySwapchain(_device, VkSwapchain, null);
         Array.Clear(_swapchainImages);
         _khrSwapchain.Dispose();
     }
+
+    public SwapchainKHR Convert() => VkSwapchain;
 }

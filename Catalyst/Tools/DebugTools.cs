@@ -26,7 +26,7 @@ public static class DebugTools
                                                    void* pUserData)
     {
         using var message = new ByteString(pCallbackData->PMessage);
-        Console.WriteLine($"[Vulkan] {messageSeverity}: {message}");
+        Console.WriteLine($"[Vulkan] {SeverityFlagToString(messageSeverity)}: {message}");
         return Vk.False;
     }
 }
