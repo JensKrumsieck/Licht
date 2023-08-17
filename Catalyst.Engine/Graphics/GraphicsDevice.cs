@@ -37,6 +37,33 @@ public sealed class GraphicsDevice : IDisposable
 
     public Sampler CreateSampler(SamplerCreateInfo info) => _device.CreateSampler(info);
     public void DestroySampler(Sampler sampler) => _device.DestroySampler(sampler);
+
+    public AllocatedImage CreateImage(ImageCreateInfo info, MemoryPropertyFlags propertyFlags) =>
+        _device.CreateImage(Allocator, info, propertyFlags);
+    
+    public void DestroyImage(Al)
+    
+    public CommandBuffer BeginSingleTimeCommands()
+    {
+        var cmd = AllocateCommandBuffers(1)[0];
+        cmd.Begin();
+        return cmd;
+    }
+
+    public unsafe void EndSingleTimeCommands(CommandBuffer cmd)
+    {
+        cmd.End();
+        var submitInfo = new SubmitInfo
+        {
+            SType = StructureType.SubmitInfo,
+            CommandBufferCount = 1,
+            PCommandBuffers = &cmd.VkCommandBuffer
+        };
+        _device.SubmitMainQueue(submitInfo, default);
+        _device.WaitForQueue();
+        _device.FreeCommandBuffer(cmd, _commandPool);
+    }
+    
     public void Dispose()
     {
         _allocator.Dispose();

@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Catalyst.Allocation;
 using Catalyst.Engine.Graphics;
 using Catalyst.Pipeline;
 using ImGuiNET;
@@ -10,13 +11,14 @@ namespace Catalyst.Engine.UI;
 public class ImGuiContext : IDisposable
 {
     private readonly GraphicsDevice _device;
-    private readonly Sampler _fontSampler;
     private readonly DescriptorPool _descriptorPool;
     private readonly DescriptorSetLayout _descriptorSetLayout;
     private readonly DescriptorSet _descriptorSet;
     private readonly ShaderEffect _shaderEffect;
     private readonly ShaderPass _shaderPass;
-    
+    private readonly Sampler _fontSampler;
+    private readonly AllocatedImage _fontImage;
+
     public ImGuiContext(GraphicsDevice device, RenderPass renderPass)
     {
         _device = device;
@@ -69,10 +71,28 @@ public class ImGuiContext : IDisposable
             });
         var passInfo = ShaderPassInfo.Default();
         _shaderPass = new ShaderPass(_device.Device, _shaderEffect, passInfo, vertexInfo, renderPass);
+        var cmd = _device.BeginSingleTimeCommands();
+        var imageInfo = new ImageCreateInfo
+        {
+            SType = StructureType.ImageCreateInfo,
+            ImageType = ImageType.Type2D,
+            Format = Format.R8G8B8A8Unorm,
+            MipLevels = 1,
+            ArrayLayers = 1,
+            Samples = SampleCountFlags.Count1Bit,
+            Tiling = ImageTiling.Optimal,
+            Usage = ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit,
+            SharingMode = SharingMode.Exclusive,
+            InitialLayout = ImageLayout.Undefined,
+            Extent = new Extent3D((uint)width, (uint)height, 1)
+        };
+        _fontImage = _device.CreateImage(imageInfo, MemoryPropertyFlags.DeviceLocalBit);
+        _device.EndSingleTimeCommands(cmd);
     }
 
     public void Dispose()
     {
+        _fontImage.Allocation.Dispose();
         _device.DestroySampler(_fontSampler);
         _descriptorPool.FreeDescriptorSet(_descriptorSet);
         _descriptorPool.Dispose();

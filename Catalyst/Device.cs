@@ -56,6 +56,7 @@ public readonly unsafe struct Device : IDisposable, IConvertibleTo<Silk.NET.Vulk
 
     public void WaitIdle() => vk.DeviceWaitIdle(VkDevice);
     public Result WaitForFence(Fence fence) => vk.WaitForFences(VkDevice, 1, fence, true, ulong.MaxValue);
+    public Result WaitForQueue() => vk.QueueWaitIdle(MainQueue);
     public Result ResetFence(Fence fence) => vk.ResetFences(VkDevice, 1, fence);
 
     public Result SubmitMainQueue(SubmitInfo submitInfo, Fence fence) => vk.QueueSubmit(MainQueue, 1, submitInfo, fence);
@@ -78,6 +79,8 @@ public readonly unsafe struct Device : IDisposable, IConvertibleTo<Silk.NET.Vulk
     public void FreeCommandBuffers(CommandBuffer[] commandBuffers, CommandPool commandPool) =>
         vk.FreeCommandBuffers(VkDevice, commandPool, (uint) commandBuffers.Length,
                               commandBuffers.AsArray<CommandBuffer, Silk.NET.Vulkan.CommandBuffer>());
+    public void FreeCommandBuffer(CommandBuffer commandBuffer, CommandPool commandPool) =>
+        vk.FreeCommandBuffers(VkDevice, commandPool, 1, commandBuffer);
 
     public Format FindFormat(Format[] candidates, ImageTiling tiling, FormatFeatureFlags formatFeatureFlags)
     {
@@ -98,7 +101,7 @@ public readonly unsafe struct Device : IDisposable, IConvertibleTo<Silk.NET.Vulk
         vk.CreateImage(VkDevice, info, null, out var image);
         var allocInfo = new AllocationCreateInfo {Usage = propertyFlags};
         allocator.AllocateImage(image, allocInfo, out var allocation);
-        return new AllocatedImage {Image = image, Allocation = allocation};
+        return new AllocatedImage(image, allocation);
     }
 
     public Sampler CreateSampler(SamplerCreateInfo createInfo)

@@ -6,10 +6,10 @@ public unsafe struct Allocation : IDisposable
 {
     private readonly IAllocator _allocator;
     public DeviceMemory AllocatedMemory;
-    public uint Type;
-    public uint Id;
-    public ulong Size;
-    public uint Offset;
+    public readonly uint Type;
+    public readonly uint Id;
+    public readonly ulong Size;
+    public readonly uint Offset;
 
     public void* PMappedData;
 
@@ -33,7 +33,7 @@ public unsafe struct Allocation : IDisposable
         PMappedData = null;
     }
 
-    public void Dispose()
+    public readonly void Dispose()
     {
         if(PMappedData is null) Unmap();
         _allocator.Free(this);

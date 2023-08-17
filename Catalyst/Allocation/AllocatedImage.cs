@@ -2,8 +2,13 @@
 
 namespace Catalyst.Allocation;
 
-public struct AllocatedImage
+public readonly struct AllocatedImage
 {
-    public Image Image;
-    public Allocation Allocation;
+    public readonly Image Image;
+    public readonly Allocation Allocation;
+    public AllocatedImage(Image image, Allocation allocation)
+    {
+        Image = image;
+        Allocation = allocation;
+    }
 }
