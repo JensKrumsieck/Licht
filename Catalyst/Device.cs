@@ -86,7 +86,7 @@ public readonly unsafe struct Device : IDisposable, IConvertibleTo<Silk.NET.Vulk
             vk.GetPhysicalDeviceFormatProperties(PhysicalDevice, candidate, out var props);
             if (tiling == ImageTiling.Linear && (props.LinearTilingFeatures & formatFeatureFlags) == formatFeatureFlags)
                 return candidate;
-            if (tiling == ImageTiling.Optimal && (props.OptimalTilingFeatures & formatFeatureFlags) == formatFeatureFlags) ;
+            if (tiling == ImageTiling.Optimal && (props.OptimalTilingFeatures & formatFeatureFlags) == formatFeatureFlags)
                 return candidate;
         }
 

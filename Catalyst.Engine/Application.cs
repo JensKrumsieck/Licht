@@ -19,7 +19,7 @@ public class Application : IDisposable
         _window.Initialize();
         _device = new GraphicsDevice(_window);
         _renderer = new Renderer(_device, _window);
-        _guiContext = new ImGuiContext(_device);
+        _guiContext = new ImGuiContext(_device, _renderer.RenderPass);
     }
 
     public void AttachLayer(ILayer layer)

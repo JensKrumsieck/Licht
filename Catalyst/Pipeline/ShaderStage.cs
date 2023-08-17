@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using Catalyst.Tools;
+﻿using Catalyst.Tools;
 using Silk.NET.Vulkan;
 
 namespace Catalyst.Pipeline;
@@ -31,7 +30,7 @@ public readonly struct ShaderStage
         Flags = PipelineShaderStageCreateFlags.None
     };
 }
-public struct ShaderModule : IConvertibleTo<Silk.NET.Vulkan.ShaderModule>
+public readonly struct ShaderModule : IConvertibleTo<Silk.NET.Vulkan.ShaderModule>
 {
     public readonly Silk.NET.Vulkan.ShaderModule VkShaderModule;
     public readonly uint[] Code;
@@ -57,7 +56,7 @@ public struct ShaderModule : IConvertibleTo<Silk.NET.Vulkan.ShaderModule>
             {
                 SType = StructureType.ShaderModuleCreateInfo,
                 CodeSize = (nuint) shaderCode.Length * sizeof(uint),
-                PCode = pShaderCode
+                PCode = pShaderCode,
             };
             vk.CreateShaderModule(device, createInfo, null, out var module);
             return new ShaderModule(module, shaderCode);

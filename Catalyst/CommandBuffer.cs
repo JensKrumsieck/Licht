@@ -25,4 +25,6 @@ public struct CommandBuffer : IConvertibleTo<Silk.NET.Vulkan.CommandBuffer>
 
    public void SetViewport(Viewport viewport) => vk.CmdSetViewport(this, 0, 1, viewport);
    public void SetScissor(Rect2D scissor) => vk.CmdSetScissor(this, 0, 1, scissor);
+
+   public void BindGraphicsPipeline(Silk.NET.Vulkan.Pipeline pipeline) => vk.CmdBindPipeline(VkCommandBuffer, PipelineBindPoint.Graphics, pipeline);
 }

@@ -40,7 +40,7 @@ public readonly unsafe struct ShaderEffect : IDisposable
         return new ShaderEffect(device, pipelineLayout, setLayouts, stages);
     }
     
-    private static unsafe PipelineLayout CreatePipelineLayout(Device device, Silk.NET.Vulkan.DescriptorSetLayout[] setLayouts, PushConstantRange[]? pushRanges)
+    private static PipelineLayout CreatePipelineLayout(Device device, Silk.NET.Vulkan.DescriptorSetLayout[] setLayouts, PushConstantRange[]? pushRanges)
     {
         fixed (Silk.NET.Vulkan.DescriptorSetLayout* pSetLayouts = setLayouts)
         fixed (PushConstantRange* pPushRanges = pushRanges)
@@ -57,6 +57,7 @@ public readonly unsafe struct ShaderEffect : IDisposable
             return pipelineLayout;
         }
     }
+    
     public void Dispose()
     {
         foreach (var stage in Stages) vk.DestroyShaderModule(_device, stage.ShaderModule, null);

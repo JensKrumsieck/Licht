@@ -14,13 +14,14 @@ public sealed class Renderer : IDisposable
     private uint _currentImageIndex;
     private int _currentFrameIndex;
     
-    private ClearValue[] _clearValues = {
+    private readonly ClearValue[] _clearValues = {
         new() {Color = new ClearColorValue(.01f, .01f, .01f, 1f)},
         new() {DepthStencil = new ClearDepthStencilValue(1f, 0u)}
     };
     
     public CommandBuffer CurrentCommandBuffer => _commandBuffers[_currentFrameIndex];
-    
+    public RenderPass RenderPass => _swapchain.RenderPass;
+
     public Renderer(GraphicsDevice device, IWindow window)
     {
         _window = window;
