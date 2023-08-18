@@ -98,12 +98,24 @@ public readonly unsafe struct Device : IDisposable, IConvertibleTo<Silk.NET.Vulk
 
     public AllocatedImage CreateImage(IAllocator allocator, ImageCreateInfo info, MemoryPropertyFlags propertyFlags)
     {
-        vk.CreateImage(VkDevice, info, null, out var image);
+        vk.CreateImage(VkDevice, info, null, out var image).Validate();
         var allocInfo = new AllocationCreateInfo {Usage = propertyFlags};
         allocator.AllocateImage(image, allocInfo, out var allocation);
         return new AllocatedImage(image, allocation);
     }
+    public void DestroyImage(AllocatedImage image)
+    {
+        vk.DestroyImage(VkDevice, image.Image, null);
+        image.Allocation.Dispose();
+    }
 
+    public ImageView CreateImageView(ImageViewCreateInfo info)
+    {
+        vk.CreateImageView(VkDevice, info, null, out var imageView).Validate();
+        return imageView;
+    }
+    public void DestroyImageView(ImageView view) => vk.DestroyImageView(VkDevice, view, null);
+    
     public Sampler CreateSampler(SamplerCreateInfo createInfo)
     {
         vk.CreateSampler(VkDevice, createInfo, default, out var sampler).Validate();
@@ -111,6 +123,29 @@ public readonly unsafe struct Device : IDisposable, IConvertibleTo<Silk.NET.Vulk
     }
 
     public void DestroySampler(Sampler sampler) => vk.DestroySampler(VkDevice, sampler, null);
+
+    public Buffer CreateBuffer(IAllocator allocator, uint instanceSize, uint instanceCount, BufferUsageFlags usageFlags, MemoryPropertyFlags memoryFlags)
+    {
+        ulong alignedSize = instanceSize;
+        if (usageFlags == BufferUsageFlags.UniformBufferBit)
+        {
+            vk.GetPhysicalDeviceProperties(PhysicalDevice, out var props);
+            alignedSize = Buffer.GetAlignment(instanceSize, props.Limits.MinUniformBufferOffsetAlignment);
+        }
+        
+        var size = alignedSize * instanceCount;
+        var bufferInfo = new BufferCreateInfo
+        {
+            SType = StructureType.BufferCreateInfo,
+            Size = size,
+            Usage = usageFlags,
+            SharingMode = SharingMode.Exclusive
+        };
+        vk.CreateBuffer(VkDevice, bufferInfo, null, out var buffer).Validate();
+        var allocInfo = new AllocationCreateInfo {Usage = memoryFlags};
+        allocator.AllocateBuffer(buffer, allocInfo, out var allocation);
+        return new Buffer(this, size, buffer, allocation);
+    }
     
     public static implicit operator Silk.NET.Vulkan.Device(Device d) => d.VkDevice;
 

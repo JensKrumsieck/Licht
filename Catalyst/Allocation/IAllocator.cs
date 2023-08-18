@@ -8,8 +8,6 @@ public unsafe interface IAllocator : IDisposable
 
     void Allocate(AllocationCreateInfo createInfo, out Allocation alloc);
     void Free(Allocation alloc);
-    Result MapMemory(DeviceMemory deviceMemory, ulong offset, ulong size, ref void* pMappedData);
-    void UnmapMemory(DeviceMemory deviceMemory);
     
     ulong AllocatedSize(uint memoryType);
     uint NumberOfAllocations();

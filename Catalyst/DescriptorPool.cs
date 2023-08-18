@@ -28,6 +28,23 @@ public readonly unsafe struct DescriptorPool : IDisposable, IConvertibleTo<Silk.
 
     public DescriptorSet AllocateDescriptorSet(DescriptorSetLayout[] setLayouts) => new(_device, this, setLayouts);
 
+    private void UpdateDescriptorSet(ref DescriptorSet set, DescriptorImageInfo imageInfo, DescriptorBufferInfo bufferInfo, DescriptorType type)
+    {
+        var write = new WriteDescriptorSet
+        {
+            SType = StructureType.WriteDescriptorSet,
+            DstSet = set,
+            DescriptorCount = 1,
+            PBufferInfo = &bufferInfo,
+            PImageInfo = &imageInfo,
+            DescriptorType = type
+        };
+        vk.UpdateDescriptorSets(_device, 1, &write, 0, default);
+    }
+
+    public void UpdateDescriptorSetImage(ref DescriptorSet set, DescriptorImageInfo imageInfo, DescriptorType type) => UpdateDescriptorSet(ref set, imageInfo, default, type);
+    public void UpdateDescriptorSetBuffer(ref DescriptorSet set, DescriptorBufferInfo bufferInfo, DescriptorType type) => UpdateDescriptorSet(ref set, default, bufferInfo, type);
+
     public void FreeDescriptorSets(DescriptorSet[] sets) =>
         vk.FreeDescriptorSets(_device, VkDescriptorPool, (uint) sets.Length,
                               sets.AsArray<DescriptorSet, Silk.NET.Vulkan.DescriptorSet>());

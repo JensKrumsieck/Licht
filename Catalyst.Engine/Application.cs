@@ -1,5 +1,6 @@
 ﻿using Catalyst.Engine.Graphics;
 using Catalyst.Engine.UI;
+using ImGuiNET;
 using Silk.NET.Windowing;
 
 namespace Catalyst.Engine;
@@ -19,7 +20,7 @@ public class Application : IDisposable
         _window.Initialize();
         _device = new GraphicsDevice(_window);
         _renderer = new Renderer(_device, _window);
-        _guiContext = new ImGuiContext(_device, _renderer.RenderPass);
+        _guiContext = new ImGuiContext(_renderer);
     }
 
     public void AttachLayer(ILayer layer)
@@ -40,11 +41,14 @@ public class Application : IDisposable
     {
         var cmd = _renderer.BeginFrame();
         _renderer.BeginRenderPass(cmd);
+        _guiContext.Update((float)deltaTime);
+        ImGui.ShowDemoWindow();
         foreach (var layer in _layerStack)
         {
             layer.OnUpdate(deltaTime);
             layer.OnDrawGui(deltaTime);
         }
+        _guiContext.Render(cmd);
         _renderer.EndRenderPass(cmd);
         _renderer.EndFrame();
     }

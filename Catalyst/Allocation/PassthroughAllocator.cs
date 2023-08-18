@@ -47,13 +47,6 @@ public sealed unsafe class PassthroughAllocator : IAllocator
         vk.FreeMemory(_state.Context, alloc.AllocatedMemory, null);
     }
 
-    public unsafe Result MapMemory(DeviceMemory deviceMemory, ulong offset, ulong size, ref void* pMappedData) => throw new NotImplementedException();
-
-    public void UnmapMemory(DeviceMemory deviceMemory)
-    {
-        throw new NotImplementedException();
-    }
-
     public ulong AllocatedSize(uint memoryType) => _state.MemoryTypeAllocSizes[memoryType];
 
     public uint NumberOfAllocations() => _state.TotalAllocations;

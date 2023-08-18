@@ -39,7 +39,7 @@ public struct ShaderPassInfo
                 PolygonMode = PolygonMode.Fill,
                 LineWidth = 1.0f,
                 CullMode = CullModeFlags.None,
-                FrontFace = FrontFace.Clockwise,
+                FrontFace = FrontFace.CounterClockwise,
                 DepthBiasEnable = false,
                 DepthBiasConstantFactor = 0.0f,
                 DepthBiasClamp = 0.0f,
@@ -94,5 +94,29 @@ public struct ShaderPassInfo
             };
         }
         return pipelineDescription;
+    }
+
+    public void EnableAlphaBlend()
+    {
+        ColorBlendAttachment = new PipelineColorBlendAttachmentState
+        {
+            ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit |
+                             ColorComponentFlags.ABit,
+            BlendEnable = true,
+            SrcColorBlendFactor = BlendFactor.SrcAlpha,
+            DstColorBlendFactor = BlendFactor.OneMinusSrcAlpha,
+            ColorBlendOp = BlendOp.Add,
+            SrcAlphaBlendFactor = BlendFactor.One,
+            DstAlphaBlendFactor = BlendFactor.Zero,
+            AlphaBlendOp = BlendOp.Add
+        };
+    }
+
+    public void NoDepthTesting()
+    {
+        DepthStencilInfo = new PipelineDepthStencilStateCreateInfo
+        {
+            SType = StructureType.PipelineDepthStencilStateCreateInfo
+        };
     }
 }

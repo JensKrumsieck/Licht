@@ -7,8 +7,8 @@ namespace Catalyst.Engine.Graphics;
 public sealed class Renderer : IDisposable
 {
     private Swapchain _swapchain;
-    private readonly IWindow _window;
-    private readonly GraphicsDevice _device;
+    public readonly IWindow Window;
+    public readonly GraphicsDevice Device;
     private readonly CommandBuffer[] _commandBuffers;
     
     private uint _currentImageIndex;
@@ -18,33 +18,35 @@ public sealed class Renderer : IDisposable
         new() {Color = new ClearColorValue(.01f, .01f, .01f, 1f)},
         new() {DepthStencil = new ClearDepthStencilValue(1f, 0u)}
     };
-    
+
     public CommandBuffer CurrentCommandBuffer => _commandBuffers[_currentFrameIndex];
     public RenderPass RenderPass => _swapchain.RenderPass;
+    public int ImageCount => _swapchain.ImageCount;
+    public uint CurrentImageIndex => _currentImageIndex;
 
     public Renderer(GraphicsDevice device, IWindow window)
     {
-        _window = window;
-        _device = device;
+        Window = window;
+        Device = device;
         RecreateSwapchain();
-        _commandBuffers = _device.AllocateCommandBuffers((uint)_swapchain.ImageCount);
+        _commandBuffers = Device.AllocateCommandBuffers((uint)_swapchain.ImageCount);
     }
 
     private void RecreateSwapchain()
     {
-        var extent = new Extent2D((uint)_window.FramebufferSize.X, (uint)_window.FramebufferSize.Y);
+        var extent = new Extent2D((uint)Window.FramebufferSize.X, (uint)Window.FramebufferSize.Y);
         while (extent.Width == 0 || extent.Height == 0)
         {
-            extent= new Extent2D((uint)_window.FramebufferSize.X, (uint)_window.FramebufferSize.Y);
-            _window.DoEvents();
+            extent= new Extent2D((uint)Window.FramebufferSize.X, (uint)Window.FramebufferSize.Y);
+            Window.DoEvents();
         }
-        _device.WaitIdle();
+        Device.WaitIdle();
         
-        if(_swapchain.VkSwapchain.Handle == 0) _swapchain = new Swapchain(_device.Device, _device.Surface, _device.Allocator, extent);
+        if(_swapchain.VkSwapchain.Handle == 0) _swapchain = new Swapchain(Device.Device, Device.Surface, Device.Allocator, extent);
         else
         {
             var oldSwapchain = _swapchain;
-            _swapchain = new Swapchain(_device.Device, _device.Surface, _device.Allocator, extent, oldSwapchain);
+            _swapchain = new Swapchain(Device.Device, Device.Surface, Device.Allocator, extent, oldSwapchain);
             //TODO: Compare Formats
             oldSwapchain.Dispose();
         }
@@ -100,7 +102,7 @@ public sealed class Renderer : IDisposable
     
     public void Dispose()
     {
-        _device.FreeCommandBuffers(_commandBuffers);
+        Device.FreeCommandBuffers(_commandBuffers);
         _swapchain.Dispose();
     }
 }

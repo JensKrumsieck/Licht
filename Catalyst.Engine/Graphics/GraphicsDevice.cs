@@ -40,8 +40,83 @@ public sealed class GraphicsDevice : IDisposable
 
     public AllocatedImage CreateImage(ImageCreateInfo info, MemoryPropertyFlags propertyFlags) =>
         _device.CreateImage(Allocator, info, propertyFlags);
-    
-    public void DestroyImage(Al)
+
+    public void DestroyImage(AllocatedImage image) => _device.DestroyImage(image);
+
+    public ImageView CreateImageView(ImageViewCreateInfo createInfo) => _device.CreateImageView(createInfo);
+    public void DestroyImageView(ImageView view) => _device.DestroyImageView(view);
+
+    public Buffer CreateBuffer(uint instanceSize, uint instanceCount, BufferUsageFlags usageFlags,
+                               MemoryPropertyFlags memoryFlags) =>
+        _device.CreateBuffer(_allocator, instanceSize, instanceCount, usageFlags, memoryFlags);
+
+    public void TransitionImageLayout(Image image, Format format, ImageLayout oldLayout, ImageLayout newLayout,
+                                      uint mipLevels, uint layerCount)
+    {
+        var cmd = BeginSingleTimeCommands();
+        var range = new ImageSubresourceRange(null, 0, mipLevels, 0, layerCount);
+        if (newLayout == ImageLayout.DepthStencilAttachmentOptimal)
+        {
+            range.AspectMask = ImageAspectFlags.DepthBit;
+            if (format is Format.D32SfloatS8Uint or Format.D24UnormS8Uint)
+                range.AspectMask |= ImageAspectFlags.StencilBit;
+        }
+        else range.AspectMask = ImageAspectFlags.ColorBit;
+
+        var barrierInfo = new ImageMemoryBarrier
+        {
+            SType = StructureType.ImageMemoryBarrier,
+            OldLayout = oldLayout,
+            NewLayout = newLayout,
+            Image = image,
+            SubresourceRange = range,
+        };
+        
+        PipelineStageFlags srcStage;
+        PipelineStageFlags dstStage;
+        if (oldLayout == ImageLayout.Undefined && newLayout is ImageLayout.TransferDstOptimal or ImageLayout.TransferSrcOptimal)
+        {
+            barrierInfo.SrcAccessMask = 0;
+            barrierInfo.DstAccessMask = AccessFlags.TransferWriteBit;
+            srcStage = PipelineStageFlags.TopOfPipeBit;
+            dstStage = PipelineStageFlags.TransferBit;
+        }
+        else if (oldLayout == ImageLayout.TransferDstOptimal && newLayout == ImageLayout.ShaderReadOnlyOptimal)
+        {
+            barrierInfo.SrcAccessMask = AccessFlags.TransferWriteBit;
+            barrierInfo.DstAccessMask = AccessFlags.ShaderReadBit;
+            srcStage = PipelineStageFlags.TransferBit;
+            dstStage = PipelineStageFlags.FragmentShaderBit;
+        }
+        else if (oldLayout == ImageLayout.Undefined && newLayout == ImageLayout.DepthStencilAttachmentOptimal)
+        {
+            barrierInfo.SrcAccessMask = 0;
+            barrierInfo.DstAccessMask =
+                AccessFlags.DepthStencilAttachmentReadBit | AccessFlags.DepthStencilAttachmentWriteBit;
+            srcStage = PipelineStageFlags.TopOfPipeBit;
+            dstStage = PipelineStageFlags.EarlyFragmentTestsBit;
+        }
+        else throw new Exception("Unsupported Layout Transition");
+
+        cmd.ImageMemoryBarrier(barrierInfo, srcStage, dstStage);
+        EndSingleTimeCommands(cmd);
+    }
+    public void CopyBufferToImage(Buffer buffer, Image image, ImageLayout layout, Format format, Extent3D imageExtent, uint mipLevel = 0, uint layerCount = 1)
+    {
+        var cmd = BeginSingleTimeCommands();
+        var range = new ImageSubresourceLayers(null, mipLevel, 0, layerCount);
+        if (layout == ImageLayout.DepthStencilAttachmentOptimal)
+        {
+            range.AspectMask = ImageAspectFlags.DepthBit;
+            if (format is Format.D32SfloatS8Uint or Format.D24UnormS8Uint)
+                range.AspectMask |= ImageAspectFlags.StencilBit;
+        }
+        else range.AspectMask = ImageAspectFlags.ColorBit;
+
+        var copyRegion = new BufferImageCopy(0, 0, 0, range, default, imageExtent);
+        cmd.CopyBufferToImage(buffer, image, layout, copyRegion);
+        EndSingleTimeCommands(cmd);
+    }
     
     public CommandBuffer BeginSingleTimeCommands()
     {
