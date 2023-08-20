@@ -82,11 +82,11 @@ public sealed class Renderer : IDisposable
                 PClearValues = pClearValues
             };
             cmd.BeginRenderPass(beginInfo);
+            var viewport = new Viewport(0, 0, _swapchain.Extent.Width, _swapchain.Extent.Height, 0, 1);
+            var scissor = new Rect2D {Offset = {X = 0, Y = 0}, Extent = _swapchain.Extent};
+            cmd.SetViewport(viewport);
+            cmd.SetScissor(scissor);
         }
-        var viewport = new Viewport(0, 0, _swapchain.Extent.Width, _swapchain.Extent.Height, 0, 1);
-        var scissor = new Rect2D {Offset = {X = 0, Y = 0}, Extent = _swapchain.Extent};
-        cmd.SetViewport(viewport);
-        cmd.SetScissor(scissor);
     }
 
     public void EndRenderPass(CommandBuffer cmd) => cmd.EndRenderPass();

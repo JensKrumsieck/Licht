@@ -2,6 +2,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using Catalyst.Allocation;
 using Catalyst.Engine.Graphics;
 using Catalyst.Pipeline;
@@ -29,7 +30,7 @@ public unsafe class ImGuiContext : IDisposable
     private Buffer[]? _indexBuffers = null!;
     
     private readonly IInputContext _input;
-    private IKeyboard _keyboard;
+    private readonly IKeyboard _keyboard;
     private readonly List<char> _pressedChars = new();
     private Key[]? _allKeys = null!;
     
@@ -40,11 +41,15 @@ public unsafe class ImGuiContext : IDisposable
         var context = ImGui.CreateContext();
         ImGui.SetCurrentContext(context);
         var io = ImGui.GetIO();
-        io.Fonts.AddFontDefault();
-        io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
-        io.Fonts.GetTexDataAsRGBA32(out nint pixels, out var width, out var height);
-        ImGui.StyleColorsDark();
+
+        var data = FileTool.ReadBytesFromResource("Assets.Roboto-Regular.ttf");
+        var mData = data.AsMemory(0);
+        using var hData = mData.Pin();
+        io.Fonts.AddFontFromMemoryTTF((nint)hData.Pointer,data.Length,14);
         
+        io.Fonts.AddFontDefault();
+        
+        io.Fonts.GetTexDataAsRGBA32(out nint pixels, out var width, out var height);
         _descriptorPool = new DescriptorPool(_renderer.Device.Device, new[] {new DescriptorPoolSize(DescriptorType.CombinedImageSampler, 1)});
         var samplerCreateInfo = new SamplerCreateInfo
         {
@@ -142,7 +147,6 @@ public unsafe class ImGuiContext : IDisposable
         SetKeyMappings();
         SetFrameData();
         
-        ImGui.NewFrame();
         _keyboard = _input.Keyboards[0];
         _keyboard.KeyChar += OnKeyChar;
     }
@@ -218,11 +222,7 @@ public unsafe class ImGuiContext : IDisposable
 
     public void Update(float deltaTime)
     {
-        ImGui.Render();
-        SetFrameData(deltaTime);
         UpdateImGuiInput();
-
-        ImGui.NewFrame();
     }
 
     public void Render(CommandBuffer cmd)

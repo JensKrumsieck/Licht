@@ -1,6 +1,5 @@
 ﻿using Catalyst.Engine.Graphics;
 using Catalyst.Engine.UI;
-using ImGuiNET;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 
@@ -8,21 +7,29 @@ namespace Catalyst.Engine;
 
 public class Application : IDisposable
 {
+    private static Application? _application;
+    
     private readonly List<ILayer> _layerStack = new();
     private readonly IWindow _window;
     private readonly IInputContext _input;
     private readonly GraphicsDevice _device;
     private readonly Renderer _renderer;
-    private readonly ImGuiContext _guiContext;
+    private readonly ImGuiLayer _uiLayer;
 
     public Application()
     {
+        //set application
+        _application?.Dispose();
+        _application = this;
+        
         _window = Window.Create(WindowOptions.DefaultVulkan);
         _window.Initialize();
         _device = new GraphicsDevice(_window);
         _renderer = new Renderer(_device, _window);
         _input = _window.CreateInput();
-        _guiContext = new ImGuiContext(_renderer, _input);
+        
+        _uiLayer = new ImGuiLayer();
+        AttachLayer(_uiLayer);
     }
 
     public void AttachLayer(ILayer layer)
@@ -43,19 +50,27 @@ public class Application : IDisposable
     {
         var cmd = _renderer.BeginFrame();
         _renderer.BeginRenderPass(cmd);
-        _guiContext.Update((float)deltaTime);
+        foreach (var layer in _layerStack) layer.OnUpdate(deltaTime);
+        
+        _uiLayer.Begin();
         foreach (var layer in _layerStack)
         {
-            layer.OnUpdate(deltaTime);
             layer.OnDrawGui(deltaTime);
         }
-        _guiContext.Render(cmd);
+        _uiLayer.End();
+        
         _renderer.EndRenderPass(cmd);
         _renderer.EndFrame();
     }
+
+    public static Application GetApplication() => _application!;
+    public static Renderer GetRenderer() => _application!._renderer;
+    public static IInputContext GetInput() => _application!._input;
+    
     public void Dispose()
     {
-        _guiContext.Dispose();
+        _uiLayer.OnDetach();
+        
         _renderer.Dispose();
         _device.Dispose();
         _window.Dispose();
