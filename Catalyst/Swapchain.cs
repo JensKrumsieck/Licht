@@ -14,10 +14,12 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
     public readonly SwapchainKHR VkSwapchain;
     public int ImageCount => _swapchainImages.Length;
     public Extent2D Extent => _extent;
+    public Format DepthFormat => _depthFormat;
+    public Format ImageFormat => _imageImageFormat;
 
     private readonly Image[] _swapchainImages;
     private readonly ImageView[] _swapchainImageViews;
-    private readonly Format _imageFormat;
+    private readonly Format _imageImageFormat;
 
     private readonly AllocatedImage[] _depthImages;
     private readonly ImageView[] _depthImageViews;
@@ -80,7 +82,7 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
         fixed (Image* pSwapchainImages = _swapchainImages)
             _khrSwapchain.GetSwapchainImages(_device, VkSwapchain, &imageCount, pSwapchainImages);
 
-        _imageFormat = surfaceFormat.Format;
+        _imageImageFormat = surfaceFormat.Format;
         _extent = extent;
 
         //create views
@@ -89,7 +91,7 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
         {
             SType = StructureType.ImageViewCreateInfo,
             ViewType = ImageViewType.Type2D,
-            Format = _imageFormat,
+            Format = _imageImageFormat,
             SubresourceRange = new ImageSubresourceRange(ImageAspectFlags.ColorBit, 0, 1, 0, 1)
         };
         for (var i = 0; i < imageCount; i++)
@@ -177,7 +179,7 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
 
         var colorAttachment = new AttachmentDescription
         {
-            Format = _imageFormat,
+            Format = _imageImageFormat,
             Samples = SampleCountFlags.Count1Bit,
             LoadOp = AttachmentLoadOp.Clear,
             StoreOp = AttachmentStoreOp.Store,

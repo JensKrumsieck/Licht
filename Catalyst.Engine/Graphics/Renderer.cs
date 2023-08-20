@@ -14,6 +14,8 @@ public sealed class Renderer : IDisposable
     private uint _currentImageIndex;
     private int _currentFrameIndex;
     
+    public Swapchain Swapchain => _swapchain;
+    
     private readonly ClearValue[] _clearValues = {
         new() {Color = new ClearColorValue(.01f, .01f, .01f, 1f)},
         new() {DepthStencil = new ClearDepthStencilValue(1f, 0u)}

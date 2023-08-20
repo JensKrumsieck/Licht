@@ -126,25 +126,21 @@ public readonly unsafe struct Device : IDisposable, IConvertibleTo<Silk.NET.Vulk
 
     public Buffer CreateBuffer(IAllocator allocator, uint instanceSize, uint instanceCount, BufferUsageFlags usageFlags, MemoryPropertyFlags memoryFlags)
     {
-        ulong alignedSize = instanceSize;
-        if (usageFlags == BufferUsageFlags.UniformBufferBit)
-        {
-            vk.GetPhysicalDeviceProperties(PhysicalDevice, out var props);
-            alignedSize = Buffer.GetAlignment(instanceSize, props.Limits.MinUniformBufferOffsetAlignment);
-        }
-        
-        var size = alignedSize * instanceCount;
+        ulong alignedSize = instanceSize * instanceCount;
+        vk.GetPhysicalDeviceProperties(PhysicalDevice, out var props);
+        if (usageFlags == BufferUsageFlags.UniformBufferBit) alignedSize = Buffer.GetAlignment(alignedSize, props.Limits.MinUniformBufferOffsetAlignment);
+        else alignedSize = Buffer.GetAlignment(alignedSize, 256);
         var bufferInfo = new BufferCreateInfo
         {
             SType = StructureType.BufferCreateInfo,
-            Size = size,
+            Size = alignedSize,
             Usage = usageFlags,
             SharingMode = SharingMode.Exclusive
         };
         vk.CreateBuffer(VkDevice, bufferInfo, null, out var buffer).Validate();
         var allocInfo = new AllocationCreateInfo {Usage = memoryFlags};
         allocator.AllocateBuffer(buffer, allocInfo, out var allocation);
-        return new Buffer(this, size, buffer, allocation);
+        return new Buffer(this, alignedSize, buffer, allocation);
     }
     
     public static implicit operator Silk.NET.Vulkan.Device(Device d) => d.VkDevice;

@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Catalyst.Tools;
 using Silk.NET.Vulkan;
 
@@ -11,9 +12,11 @@ public unsafe struct Buffer : IDisposable, IConvertibleTo<Silk.NET.Vulkan.Buffer
     public ulong BufferSize => _size;
 
     public Silk.NET.Vulkan.Buffer VkBuffer;
+    public DeviceMemory Memory => _allocation.AllocatedMemory;
+    
     public ulong Handle => VkBuffer.Handle;
     private Allocation.Allocation _allocation;
-    private void* PMappedData => _allocation.PMappedData;
+    public void* PMappedData => _allocation.PMappedData;
 
     internal Buffer(Device device, ulong size, Silk.NET.Vulkan.Buffer buffer, Allocation.Allocation allocation)
     {
@@ -37,9 +40,8 @@ public unsafe struct Buffer : IDisposable, IConvertibleTo<Silk.NET.Vulkan.Buffer
         if(size == Vk.WholeSize) Unsafe.CopyBlock(PMappedData, data, _size);
         else
         {
-            var memoryOffset = (ulong*) PMappedData;
-            memoryOffset += offset;
-            Unsafe.CopyBlock(memoryOffset, data, (uint)size);
+            var memoryOffset = (ulong*) ((ulong)PMappedData + offset);
+            System.Buffer.MemoryCopy(data, memoryOffset, size, size);
         }
     }
 

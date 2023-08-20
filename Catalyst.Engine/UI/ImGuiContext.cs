@@ -1,4 +1,4 @@
-﻿using System.Data;
+﻿using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -7,6 +7,8 @@ using Catalyst.Engine.Graphics;
 using Catalyst.Pipeline;
 using Catalyst.Tools;
 using ImGuiNET;
+using Silk.NET.Input;
+using Silk.NET.Input.Extensions;
 using Silk.NET.Vulkan;
 
 namespace Catalyst.Engine.UI;
@@ -26,9 +28,15 @@ public unsafe class ImGuiContext : IDisposable
     private Buffer[]? _vertexBuffers = null!;
     private Buffer[]? _indexBuffers = null!;
     
-    public ImGuiContext(Renderer renderer)
+    private readonly IInputContext _input;
+    private IKeyboard _keyboard;
+    private readonly List<char> _pressedChars = new();
+    private Key[]? _allKeys = null!;
+    
+    public ImGuiContext(Renderer renderer, IInputContext input)
     {
         _renderer = renderer;
+        _input = input;
         var context = ImGui.CreateContext();
         ImGui.SetCurrentContext(context);
         var io = ImGui.GetIO();
@@ -130,9 +138,39 @@ public unsafe class ImGuiContext : IDisposable
         _renderer.Device.TransitionImageLayout(_fontImage.Image, Format.B8G8R8A8Unorm, ImageLayout.TransferDstOptimal,
                                       ImageLayout.ShaderReadOnlyOptimal, 1, 1);
         io.Fonts.SetTexID((nint)_fontImage.Image.Handle);
+        
+        SetKeyMappings();
         SetFrameData();
-        BeginFrame();
+        
+        ImGui.NewFrame();
+        _keyboard = _input.Keyboards[0];
+        _keyboard.KeyChar += OnKeyChar;
     }
+    private void SetKeyMappings()
+    {
+        var io = ImGui.GetIO();
+        io.KeyMap[(int)ImGuiKey.Tab] = (int)Key.Tab;
+        io.KeyMap[(int)ImGuiKey.LeftArrow] = (int)Key.Left;
+        io.KeyMap[(int)ImGuiKey.RightArrow] = (int)Key.Right;
+        io.KeyMap[(int)ImGuiKey.UpArrow] = (int)Key.Up;
+        io.KeyMap[(int)ImGuiKey.DownArrow] = (int)Key.Down;
+        io.KeyMap[(int)ImGuiKey.PageUp] = (int)Key.PageUp;
+        io.KeyMap[(int)ImGuiKey.PageDown] = (int)Key.PageDown;
+        io.KeyMap[(int)ImGuiKey.Home] = (int)Key.Home;
+        io.KeyMap[(int)ImGuiKey.End] = (int)Key.End;
+        io.KeyMap[(int)ImGuiKey.Delete] = (int)Key.Delete;
+        io.KeyMap[(int)ImGuiKey.Backspace] = (int)Key.Backspace;
+        io.KeyMap[(int)ImGuiKey.Enter] = (int)Key.Enter;
+        io.KeyMap[(int)ImGuiKey.Escape] = (int)Key.Escape;
+        io.KeyMap[(int)ImGuiKey.A] = (int)Key.A;
+        io.KeyMap[(int)ImGuiKey.C] = (int)Key.C;
+        io.KeyMap[(int)ImGuiKey.V] = (int)Key.V;
+        io.KeyMap[(int)ImGuiKey.X] = (int)Key.X;
+        io.KeyMap[(int)ImGuiKey.Y] = (int)Key.Y;
+        io.KeyMap[(int)ImGuiKey.Z] = (int)Key.Z;
+    }
+    
+    private void OnKeyChar(IKeyboard kb, char @char) => _pressedChars.Add(@char);
 
     private void SetFrameData(float deltaTime = 1f/60f)
     {;
@@ -143,16 +181,47 @@ public unsafe class ImGuiContext : IDisposable
                                                      _renderer.Window.FramebufferSize.Y / (float) _renderer.Window.Size.Y);
         io.DeltaTime = deltaTime;
     }
-
-    private void BeginFrame()
+    
+    private void UpdateImGuiInput()
     {
-        ImGui.NewFrame();
+        var io = ImGui.GetIO();
+
+        var mouseState = _input.Mice[0].CaptureState();
+        var keyboardState = _input.Keyboards[0];
+
+        io.MouseDown[0] = mouseState.IsButtonPressed(MouseButton.Left);
+        io.MouseDown[1] = mouseState.IsButtonPressed(MouseButton.Right);
+        io.MouseDown[2] = mouseState.IsButtonPressed(MouseButton.Middle);
+
+        var point = new Point((int)mouseState.Position.X, (int)mouseState.Position.Y);
+        io.MousePos = new Vector2(point.X, point.Y);
+
+        var wheel = mouseState.GetScrollWheels()[0];
+        io.MouseWheel = wheel.Y;
+        io.MouseWheelH = wheel.X;
+
+        _allKeys ??= (Key[]?) Enum.GetValues(typeof(Key));
+        foreach (var key in _allKeys!)
+        {
+            if (key == Key.Unknown) continue;
+            io.KeysDown[(int)key] = keyboardState.IsKeyPressed(key);
+        }
+
+        foreach (var c in _pressedChars) io.AddInputCharacter(c);
+        _pressedChars.Clear();
+
+        io.KeyCtrl = keyboardState.IsKeyPressed(Key.ControlLeft) || keyboardState.IsKeyPressed(Key.ControlRight);
+        io.KeyAlt = keyboardState.IsKeyPressed(Key.AltLeft) || keyboardState.IsKeyPressed(Key.AltRight);
+        io.KeyShift = keyboardState.IsKeyPressed(Key.ShiftLeft) || keyboardState.IsKeyPressed(Key.ShiftRight);
+        io.KeySuper = keyboardState.IsKeyPressed(Key.SuperLeft) || keyboardState.IsKeyPressed(Key.SuperRight);
     }
 
     public void Update(float deltaTime)
     {
         ImGui.Render();
         SetFrameData(deltaTime);
+        UpdateImGuiInput();
+
         ImGui.NewFrame();
     }
 
@@ -168,10 +237,7 @@ public unsafe class ImGuiContext : IDisposable
         var frameBufferHeight = (int) drawDataPtr.DisplaySize.Y * drawDataPtr.FramebufferScale.Y;
         if (framebufferWidth <= 0 || frameBufferHeight <= 0) return;
 
-        //original implementation starts a new render pass here
-
         var drawData = *drawDataPtr.NativePtr;
-
         if (_vertexBuffers is null || _indexBuffers is null)
         {
             _vertexBuffers = new Buffer[_renderer.ImageCount];
@@ -194,17 +260,17 @@ public unsafe class ImGuiContext : IDisposable
 
             vertexBuffer.Map().Validate();
             indexBuffer.Map().Validate();
-            var vtxOffset = 0;
-            var idxOffset = 0;
+            ulong vtxOffset = 0;
+            ulong idxOffset = 0;
             for (var n = 0; n < drawData.CmdListsCount; n++)
             {
                 ref var cmdList = ref drawData.CmdLists[n];
-                vertexBuffer.WriteToBuffer(cmdList->VtxBuffer.Data.ToPointer(), (uint) cmdList->VtxBuffer.Size,
-                                           (uint) vtxOffset);
-                indexBuffer.WriteToBuffer(cmdList->IdxBuffer.Data.ToPointer(), (uint) cmdList->IdxBuffer.Size,
-                                          (uint) idxOffset);
-                vtxOffset += cmdList->VtxBuffer.Size;
-                idxOffset += cmdList->VtxBuffer.Size;
+                ulong vtxChunkSize = (uint) cmdList->VtxBuffer.Size * (uint) sizeof(ImDrawVert);
+                ulong idxChunkSize = (uint) cmdList->IdxBuffer.Size * sizeof(ushort);
+                vertexBuffer.WriteToBuffer(cmdList->VtxBuffer.Data.ToPointer(), vtxChunkSize, vtxOffset);
+                indexBuffer.WriteToBuffer(cmdList->IdxBuffer.Data.ToPointer(), idxChunkSize, idxOffset);
+                vtxOffset += vtxChunkSize;
+                idxOffset += idxChunkSize;
             }
 
             vertexBuffer.Flush().Validate();
@@ -286,6 +352,8 @@ public unsafe class ImGuiContext : IDisposable
     
     public void Dispose()
     {
+        _keyboard.KeyChar -= OnKeyChar;
+        
         _renderer.Device.DestroyImage(_fontImage);
         _renderer.Device.DestroySampler(_fontSampler);
         _renderer.Device.DestroyImageView(_fontView);
