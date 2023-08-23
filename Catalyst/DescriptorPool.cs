@@ -18,7 +18,7 @@ public readonly unsafe struct DescriptorPool : IDisposable, IConvertibleTo<Silk.
             {
                 SType = StructureType.DescriptorPoolCreateInfo,
                 PoolSizeCount = (uint) poolSizes.Length,
-                PPoolSizes = pPoolSizes,
+                PPoolSizes = pPoolSizes, 
                 MaxSets = maxSets,
                 Flags = DescriptorPoolCreateFlags.FreeDescriptorSetBit
             };

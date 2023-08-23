@@ -8,7 +8,7 @@ namespace Catalyst.Engine.UI;
 
 public class ImGuiLayer : ILayer
 {
-    private ImGuiContext? _guiContext;
+    internal ImGuiContext? _guiContext;
     private Renderer? _renderer;
     private IInputContext? _input;
     

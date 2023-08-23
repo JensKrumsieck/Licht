@@ -67,7 +67,9 @@ public class Application : IDisposable
     public static GraphicsDevice GetDevice() => _application!._device;
     public static Renderer GetRenderer() => _application!._renderer;
     public static IInputContext GetInput() => _application!._input;
-    
+
+    public static ImGuiContext ctx() => _application._uiLayer._guiContext;
+
     public void Dispose()
     {
         foreach (var layer in _layerStack) layer.OnDetach();

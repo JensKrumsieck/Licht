@@ -2,8 +2,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using Catalyst.Allocation;
 using Catalyst.Engine.Graphics;
 using Catalyst.Pipeline;
 using Catalyst.Tools;
@@ -18,22 +16,19 @@ public unsafe class ImGuiContext : IDisposable
 {
     private readonly Renderer _renderer;
     private readonly DescriptorPool _descriptorPool;
-    private readonly DescriptorSetLayout _descriptorSetLayout;
-    private readonly DescriptorSet _descriptorSet;
+    private  DescriptorSet[] _descriptorSets;
     private readonly ShaderEffect _shaderEffect;
     private readonly ShaderPass _shaderPass;
-    private readonly Sampler _fontSampler;
-    private readonly AllocatedImage _fontImage;
-    private readonly ImageView _fontView;
+    private readonly Texture _fontTexture;
 
-    private Buffer[]? _vertexBuffers = null!;
-    private Buffer[]? _indexBuffers = null!;
+    private Buffer[]? _vertexBuffers;
+    private Buffer[]? _indexBuffers;
     
     private readonly IInputContext _input;
     private readonly IKeyboard _keyboard;
     private readonly List<char> _pressedChars = new();
-    private Key[]? _allKeys = null!;
-    
+    private Key[]? _allKeys;
+
     public ImGuiContext(Renderer renderer, IInputContext input)
     {
         _renderer = renderer;
@@ -50,26 +45,14 @@ public unsafe class ImGuiContext : IDisposable
         io.Fonts.AddFontDefault();
         
         io.Fonts.GetTexDataAsRGBA32(out nint pixels, out var width, out var height);
-        _descriptorPool = new DescriptorPool(_renderer.Device.Device, new[] {new DescriptorPoolSize(DescriptorType.CombinedImageSampler, 1)});
-        var samplerCreateInfo = new SamplerCreateInfo
-        {
-            SType = StructureType.SamplerCreateInfo,
-            MagFilter = Filter.Linear,
-            MinFilter = Filter.Linear,
-            MipmapMode = SamplerMipmapMode.Linear,
-            AddressModeU = SamplerAddressMode.Repeat,
-            AddressModeV = SamplerAddressMode.Repeat,
-            AddressModeW = SamplerAddressMode.Repeat,
-            MinLod = -1000,
-            MaxLod = 1000,
-            MaxAnisotropy = 1.0f
-        };
-        _fontSampler = _renderer.Device.CreateSampler(samplerCreateInfo);
-        _descriptorSetLayout = DescriptorSetLayoutBuilder
-                               .Start()
-                               .WithSampler(0, DescriptorType.CombinedImageSampler, ShaderStageFlags.FragmentBit, _fontSampler)
-                               .CreateOn(_renderer.Device.Device);
-        _descriptorSet = _descriptorPool.AllocateDescriptorSet(new[] {_descriptorSetLayout});
+        _descriptorPool = new DescriptorPool(_renderer.Device.Device, new[] {new DescriptorPoolSize(DescriptorType.CombinedImageSampler, 1000)}, 1000);
+        _fontTexture = new Texture(_renderer.Device, (uint) width, (uint) height, Format.R8G8B8A8Unorm, pixels.ToPointer());
+        _descriptorSets = new DescriptorSet[1];
+        _descriptorSets[0] = _descriptorPool.AllocateDescriptorSet(new[] {_fontTexture.DescriptorSetLayout});
+        var descriptorImageInfo = _fontTexture.ImageInfo;
+        _descriptorPool.UpdateDescriptorSetImage(ref _descriptorSets[0], descriptorImageInfo, DescriptorType.CombinedImageSampler);
+        io.Fonts.SetTexID((nint)_fontTexture.Image.Handle);
+        
         var pushRange = new PushConstantRange
         {
             StageFlags = ShaderStageFlags.VertexBit,
@@ -77,7 +60,7 @@ public unsafe class ImGuiContext : IDisposable
             Size = sizeof(float) * 4
         };
         _shaderEffect = ShaderEffect.BuildEffect(_renderer.Device.Device, UIShaders.VertexShader, UIShaders.FragmentShader,
-                                                 new[] {_descriptorSetLayout}, new[] {pushRange});
+                                                 new[] {_fontTexture.DescriptorSetLayout}, new[] {pushRange});
         var vertexInfo = new VertexInfo(
                                         new VertexInputBindingDescription[]
                                         {
@@ -94,62 +77,23 @@ public unsafe class ImGuiContext : IDisposable
         passInfo.NoDepthTesting();
         _shaderPass = new ShaderPass(_renderer.Device.Device, _shaderEffect, passInfo, vertexInfo, _renderer.RenderPass);
 
-        var imageExtent = new Extent3D((uint) width, (uint) height, 1);
-        var imageInfo = new ImageCreateInfo
-        {
-            SType = StructureType.ImageCreateInfo,
-            ImageType = ImageType.Type2D,
-            Format = Format.R8G8B8A8Unorm,
-            MipLevels = 1,
-            ArrayLayers = 1,
-            Samples = SampleCountFlags.Count1Bit,
-            Tiling = ImageTiling.Optimal,
-            Usage = ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit,
-            SharingMode = SharingMode.Exclusive,
-            InitialLayout = ImageLayout.Undefined,
-            Extent = imageExtent
-        };
-        _fontImage = _renderer.Device.CreateImage(imageInfo, MemoryPropertyFlags.DeviceLocalBit);
-        var imageViewInfo = new ImageViewCreateInfo
-        {
-            SType = StructureType.ImageViewCreateInfo,
-            Image = _fontImage.Image,
-            ViewType = ImageViewType.Type2D,
-            Format = Format.R8G8B8A8Unorm,
-            SubresourceRange = new ImageSubresourceRange(ImageAspectFlags.ColorBit, 0, 1, 0, 1)
-        };
-        _fontView = _renderer.Device.CreateImageView(imageViewInfo);
-        
-        var descriptorImageInfo = new DescriptorImageInfo
-        {
-            Sampler = _fontSampler,
-            ImageView = _fontView,
-            ImageLayout = ImageLayout.ShaderReadOnlyOptimal
-        };
-        _descriptorPool.UpdateDescriptorSetImage(ref _descriptorSet, descriptorImageInfo,
-                                                 DescriptorType.CombinedImageSampler);
-        var instanceCount = (uint) (width * height);
-        using var stagingBuffer = _renderer.Device.CreateBuffer(sizeof(uint), instanceCount, BufferUsageFlags.TransferSrcBit,
-                                               MemoryPropertyFlags.HostVisibleBit);
-        stagingBuffer.Map().Validate();
-        stagingBuffer.WriteToBuffer(pixels.ToPointer());
-        stagingBuffer.Flush().Validate();
-        stagingBuffer.Unmap();
-
-        _renderer.Device.TransitionImageLayout(_fontImage.Image, Format.B8G8R8A8Unorm, ImageLayout.Undefined,
-                                      ImageLayout.TransferDstOptimal, 1, 1);
-
-        _renderer.Device.CopyBufferToImage(stagingBuffer, _fontImage.Image, ImageLayout.TransferDstOptimal, Format.R8G8B8A8Unorm, imageExtent);
-        _renderer.Device.TransitionImageLayout(_fontImage.Image, Format.B8G8R8A8Unorm, ImageLayout.TransferDstOptimal,
-                                      ImageLayout.ShaderReadOnlyOptimal, 1, 1);
-        io.Fonts.SetTexID((nint)_fontImage.Image.Handle);
-        
         SetKeyMappings();
         SetFrameData();
         
         _keyboard = _input.Keyboards[0];
         _keyboard.KeyChar += OnKeyChar;
     }
+
+    public DescriptorSet BindAsUIImage(Texture t, int index)
+    {
+        var set  = _descriptorPool.AllocateDescriptorSet(new[] {t.DescriptorSetLayout});
+        Array.Resize(ref _descriptorSets, 2);
+        _descriptorSets[index] = set;
+        var descriptorImageInfo = t.ImageInfo;
+        _descriptorPool.UpdateDescriptorSetImage(ref _descriptorSets[index], descriptorImageInfo, DescriptorType.CombinedImageSampler);
+        return set;
+    }
+    
     private void SetKeyMappings()
     {
         var io = ImGui.GetIO();
@@ -280,8 +224,8 @@ public unsafe class ImGuiContext : IDisposable
         }
 
         cmd.BindGraphicsPipeline(_shaderPass);
-        cmd.BindGraphicsDescriptorSets(_descriptorSet, _shaderEffect);
-
+        cmd.BindGraphicsDescriptorSets(_descriptorSets, _shaderEffect);
+        
         if (drawData.TotalVtxCount > 0)
         {
             cmd.BindVertexBuffer(vertexBuffer);
@@ -354,14 +298,10 @@ public unsafe class ImGuiContext : IDisposable
     {
         _keyboard.KeyChar -= OnKeyChar;
         
-        _renderer.Device.DestroyImage(_fontImage);
-        _renderer.Device.DestroySampler(_fontSampler);
-        _renderer.Device.DestroyImageView(_fontView);
-        
-        _descriptorPool.FreeDescriptorSet(_descriptorSet);
+        _fontTexture.Dispose();
+        _descriptorPool.FreeDescriptorSets(_descriptorSets);
         _descriptorPool.Dispose();
         _shaderPass.Dispose();
-        _descriptorSetLayout.Dispose();
         _shaderEffect.Dispose();
 
         if (_indexBuffers is not null && _vertexBuffers is not null)

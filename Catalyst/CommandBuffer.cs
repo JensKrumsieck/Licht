@@ -40,8 +40,15 @@ public unsafe struct CommandBuffer : IConvertibleTo<Silk.NET.Vulkan.CommandBuffe
     public void BindGraphicsPipeline(Silk.NET.Vulkan.Pipeline pipeline) =>
         vk.CmdBindPipeline(VkCommandBuffer, PipelineBindPoint.Graphics, pipeline);
 
-    public unsafe void BindGraphicsDescriptorSets(DescriptorSet set, ShaderEffect effect) =>
+    public unsafe void BindGraphicsDescriptorSet(DescriptorSet set, ShaderEffect effect) =>
         vk.CmdBindDescriptorSets(this, PipelineBindPoint.Graphics, effect.EffectLayout, 0, 1, set, 0, null);
+
+    public unsafe void BindGraphicsDescriptorSets(DescriptorSet[] sets, ShaderEffect effect)
+    {
+        fixed(Silk.NET.Vulkan.DescriptorSet* pSets = sets.AsArray<DescriptorSet, Silk.NET.Vulkan.DescriptorSet>())
+            vk.CmdBindDescriptorSets(this, PipelineBindPoint.Graphics, effect.EffectLayout, 0, 1, pSets, 0, null);
+    }
+
 
     public void BindVertexBuffer(Buffer vertexBuffer, ulong vertexOffset = 0) =>
         vk.CmdBindVertexBuffers(this, 0u, 1, &vertexBuffer.VkBuffer, &vertexOffset);

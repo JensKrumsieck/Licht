@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Catalyst", "Catalyst\Cataly
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{ACA4C31C-0201-48BC-91AA-F2F13BAAFCEB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RayTracing", "Examples\RayTracing\RayTracing.csproj", "{93D2E78F-E014-4030-A014-77FA5CCA9E05}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,11 +31,16 @@ Global
 		{9607AC72-F0F4-4664-A2FF-F9440DF2E9A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9607AC72-F0F4-4664-A2FF-F9440DF2E9A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9607AC72-F0F4-4664-A2FF-F9440DF2E9A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93D2E78F-E014-4030-A014-77FA5CCA9E05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93D2E78F-E014-4030-A014-77FA5CCA9E05}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93D2E78F-E014-4030-A014-77FA5CCA9E05}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93D2E78F-E014-4030-A014-77FA5CCA9E05}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{FFAF4979-5CE5-4336-9BAD-4B216DC2DAB9} = {ACA4C31C-0201-48BC-91AA-F2F13BAAFCEB}
+		{93D2E78F-E014-4030-A014-77FA5CCA9E05} = {ACA4C31C-0201-48BC-91AA-F2F13BAAFCEB}
 	EndGlobalSection
 EndGlobal

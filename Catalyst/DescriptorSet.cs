@@ -6,6 +6,7 @@ namespace Catalyst;
 public readonly unsafe struct DescriptorSet : IConvertibleTo<Silk.NET.Vulkan.DescriptorSet>
 {
     public readonly Silk.NET.Vulkan.DescriptorSet VkDescriptorSet;
+    public ulong Handle => VkDescriptorSet.Handle;
     
     public DescriptorSet(Device device, DescriptorPool pool, DescriptorSetLayout[] setLayouts)
     {

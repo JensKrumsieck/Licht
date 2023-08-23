@@ -37,7 +37,7 @@ public unsafe struct Buffer : IDisposable, IConvertibleTo<Silk.NET.Vulkan.Buffer
 
     public void WriteToBuffer(void* data, ulong size = Vk.WholeSize, ulong offset = 0)
     {
-        if(size == Vk.WholeSize) Unsafe.CopyBlock(PMappedData, data, _size);
+        if(size == Vk.WholeSize) System.Buffer.MemoryCopy(data, PMappedData, _size, _size);
         else
         {
             var memoryOffset = (ulong*) ((ulong)PMappedData + offset);
