@@ -22,9 +22,9 @@ public readonly unsafe struct ShaderPass : IDisposable, IConvertibleTo<Silk.NET.
             var vertexInput = new PipelineVertexInputStateCreateInfo
             {
                 SType = StructureType.PipelineVertexInputStateCreateInfo,
-                VertexAttributeDescriptionCount = (uint) vertexInfo.AttributeDescriptions.Length,
+                VertexAttributeDescriptionCount = vertexInfo.AttributeDescriptions is not null ? (uint) vertexInfo.AttributeDescriptions!.Length : 0u,
                 PVertexAttributeDescriptions = pAttributeDescriptions,
-                VertexBindingDescriptionCount = (uint) vertexInfo.BindingDescriptions.Length,
+                VertexBindingDescriptionCount = vertexInfo.BindingDescriptions is not null ? (uint) vertexInfo.BindingDescriptions!.Length : 0u,
                 PVertexBindingDescriptions = pBindingDescriptions
             };
             var colorBlendInfo = new PipelineColorBlendStateCreateInfo

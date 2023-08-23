@@ -48,9 +48,9 @@ public struct ShaderPassInfo
             MultisampleInfo = new PipelineMultisampleStateCreateInfo
             {
                 SType = StructureType.PipelineMultisampleStateCreateInfo,
-                SampleShadingEnable = false,
+                SampleShadingEnable = true,
                 RasterizationSamples = SampleCountFlags.Count1Bit,
-                MinSampleShading = 1.0f,
+                MinSampleShading = .1f,
                 PSampleMask = null,
                 AlphaToCoverageEnable = false,
                 AlphaToOneEnable = false

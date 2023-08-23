@@ -9,7 +9,7 @@ public struct DeviceInfo
     public readonly List<string> EnabledExtensions = new() {KhrSwapchain.ExtensionName};
     public readonly List<string> EnabledLayers = new();
     public bool EnableDebug = true;
-    public PhysicalDeviceFeatures DesiredFeatures = new() {SamplerAnisotropy = true};
+    public PhysicalDeviceFeatures DesiredFeatures = new() {SamplerAnisotropy = true, SampleRateShading = true};
 
     public DeviceInfo(){}
 

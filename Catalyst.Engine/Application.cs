@@ -64,12 +64,14 @@ public class Application : IDisposable
     }
 
     public static Application GetApplication() => _application!;
+    public static GraphicsDevice GetDevice() => _application!._device;
     public static Renderer GetRenderer() => _application!._renderer;
     public static IInputContext GetInput() => _application!._input;
     
     public void Dispose()
     {
-        _uiLayer.OnDetach();
+        foreach (var layer in _layerStack) layer.OnDetach();
+        _layerStack.Clear();
         
         _renderer.Dispose();
         _device.Dispose();

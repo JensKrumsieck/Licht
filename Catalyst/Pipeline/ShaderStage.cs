@@ -64,9 +64,18 @@ public readonly struct ShaderModule : IConvertibleTo<Silk.NET.Vulkan.ShaderModul
     }
     public Silk.NET.Vulkan.ShaderModule Convert() => VkShaderModule;
     
-    public static ShaderModule FromBytes(Device device, byte[] shaderCode)
+    public static unsafe ShaderModule FromBytes(Device device, byte[] shaderCode)
     {
-        var code = Array.ConvertAll(shaderCode, System.Convert.ToUInt32);
-        return FromUInts(device, code);
+        fixed (byte* pShaderCode = shaderCode)
+        {
+            var createInfo = new ShaderModuleCreateInfo
+            {
+                SType = StructureType.ShaderModuleCreateInfo,
+                CodeSize = (nuint) shaderCode.Length,
+                PCode = (uint*)pShaderCode,
+            };
+            vk.CreateShaderModule(device, createInfo, null, out var module);
+            return new ShaderModule(module, Array.ConvertAll(shaderCode, (b) => (uint) b));
+        }
     }
 }
