@@ -10,7 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Catalyst.Engine\Catalyst.Engine.csproj" />
+      <ProjectReference Include="..\..\Catalyst.Engine\Catalyst.Engine.csproj" />
     </ItemGroup>
 
     <ItemGroup>

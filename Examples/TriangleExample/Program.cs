@@ -1,5 +1,4 @@
-﻿
-using Catalyst.Engine;
+﻿using Catalyst.Engine;
 using Catalyst.Engine.Graphics;
 using Catalyst.Pipeline;
 using ImGuiNET;
