@@ -79,6 +79,7 @@ public unsafe class Texture : IDisposable
         _descriptorSetLayout = DescriptorSetLayoutBuilder
             .Start()
             .WithSampler(0, DescriptorType.CombinedImageSampler, ShaderStageFlags.FragmentBit, _sampler)
+            .WithSampler(1, DescriptorType.CombinedImageSampler, ShaderStageFlags.FragmentBit, _sampler)
             .CreateOn(_device.Device);
     }
 

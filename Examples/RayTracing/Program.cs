@@ -35,7 +35,7 @@ internal unsafe class RayTracingLayer : ILayer
         _viewportHeight = (uint)ImGui.GetContentRegionAvail().Y;
         if (_texture is not null)
         {
-            ImGui.Image((nint)_texture.DescriptorSet.Handle ,new Vector2(_viewportWidth, _viewportHeight));
+            ImGui.Image(1 ,new Vector2(_viewportWidth, _viewportHeight));
         }
         ImGui.End();
     }
@@ -46,8 +46,9 @@ internal unsafe class RayTracingLayer : ILayer
             _texture?.Dispose();
             _imageData = new uint[_viewportWidth * _viewportHeight];
             _texture = new Texture(_device, _viewportWidth, _viewportHeight, Format.R8G8B8A8Unorm, null);
-            _texture.BindAsUIImage();
+            
         }
+        _texture?.BindAsUIImage();
 
         for (var i = 0; i < _viewportWidth * _viewportHeight; i++) 
             _imageData[i] = 0xffff00ff;

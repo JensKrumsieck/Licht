@@ -86,7 +86,7 @@ public unsafe class ImGuiContext : IDisposable
 
     public DescriptorSet BindAsUIImage(Texture t, int index)
     {
-        var set  = _descriptorPool.AllocateDescriptorSet(new[] {t.DescriptorSetLayout});
+        var set  = _descriptorPool.AllocateDescriptorSet(new[] {_fontTexture.DescriptorSetLayout});
         Array.Resize(ref _descriptorSets, 2);
         _descriptorSets[index] = set;
         var descriptorImageInfo = t.ImageInfo;
@@ -224,7 +224,7 @@ public unsafe class ImGuiContext : IDisposable
         }
 
         cmd.BindGraphicsPipeline(_shaderPass);
-        cmd.BindGraphicsDescriptorSets(_descriptorSets, _shaderEffect);
+        cmd.BindGraphicsDescriptorSet(_descriptorSets[0], _shaderEffect);
         
         if (drawData.TotalVtxCount > 0)
         {
@@ -256,6 +256,14 @@ public unsafe class ImGuiContext : IDisposable
             for (var i = 0; i < cmdList->CmdBuffer.Size; i++)
             {
                 ref var pCmd = ref cmdList->CmdBuffer.Ref<ImDrawCmd>(i);
+                if (pCmd.TextureId != IntPtr.Zero && _descriptorSets.Length > 1)
+                {
+                    if (pCmd.TextureId == (nint)_fontTexture.Image.Handle)
+                        cmd.BindGraphicsDescriptorSet(_descriptorSets[0], _shaderEffect);
+                    else
+                        cmd.BindGraphicsDescriptorSet(_descriptorSets[1], _shaderEffect);
+                }
+
                 var clipRect = new Vector4
                 {
                     X = (pCmd.ClipRect.X - clipOff.X) * clipScale.X,
