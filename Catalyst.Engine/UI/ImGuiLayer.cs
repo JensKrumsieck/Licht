@@ -12,6 +12,8 @@ public class ImGuiLayer : ILayer
     private Renderer? _renderer;
     private IInputContext? _input;
     
+    private bool _frameBegun;
+    
     public void OnAttach()
     {
         _renderer = Application.GetRenderer();
@@ -33,10 +35,17 @@ public class ImGuiLayer : ILayer
 
     public void OnUpdate(double deltaTime) => _guiContext?.Update((float)deltaTime);
 
-    public void Begin() => ImGui.NewFrame();
+    public void Begin()
+    {
+        ImGui.NewFrame();
+        _frameBegun = true;
+    }
 
     public void End()
     {
+        if (!_frameBegun) return;
+        _frameBegun = false;
+        
         var io = ImGui.GetIO();
         io.DisplaySize = new Vector2(_renderer!.Window.Size.X, _renderer.Window.Size.Y);
         if (_renderer.Window.Size is {X: > 0, Y: > 0})
