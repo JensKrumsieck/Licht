@@ -8,7 +8,7 @@ namespace Catalyst.Engine.UI;
 
 public class ImGuiLayer : ILayer
 {
-    internal ImGuiContext? _guiContext;
+    private ImGuiContext? _guiContext;
     private Renderer? _renderer;
     private IInputContext? _input;
     
@@ -51,4 +51,6 @@ public class ImGuiLayer : ILayer
             ImGui.RenderPlatformWindowsDefault();
         }
     }
+
+    public void LoadTexture(Texture t) => _guiContext?.AddTexture(t);
 }

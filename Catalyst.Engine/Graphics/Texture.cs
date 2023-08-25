@@ -1,5 +1,7 @@
 ﻿using Catalyst.Allocation;
+using Catalyst.Pipeline;
 using Catalyst.Tools;
+using ImGuiNET;
 using Silk.NET.Vulkan;
 
 namespace Catalyst.Engine.Graphics;
@@ -11,7 +13,6 @@ public unsafe class Texture : IDisposable
     private AllocatedImage _allocatedImage;
     private ImageView _imageView;
     private Sampler _sampler;
-    private  DescriptorSetLayout _descriptorSetLayout;
     private DescriptorSet _descriptorSet;
     private Extent3D ImageExtent => new(Width, Height, 1);
 
@@ -20,7 +21,6 @@ public unsafe class Texture : IDisposable
     public readonly Format ImageFormat;
     
     public Image Image => _allocatedImage.Image;
-    public DescriptorSetLayout DescriptorSetLayout => _descriptorSetLayout;
     public DescriptorSet DescriptorSet => _descriptorSet;
 
     //TOOD: Set by File
@@ -52,6 +52,7 @@ public unsafe class Texture : IDisposable
             Extent = ImageExtent
         };
         _allocatedImage = _device.CreateImage(imageInfo, MemoryPropertyFlags.DeviceLocalBit);
+        
         var imageViewInfo = new ImageViewCreateInfo
         {
             SType = StructureType.ImageViewCreateInfo,
@@ -76,11 +77,6 @@ public unsafe class Texture : IDisposable
             MaxAnisotropy = 1.0f
         };
         _sampler = _device.CreateSampler(samplerCreateInfo);
-        _descriptorSetLayout = DescriptorSetLayoutBuilder
-            .Start()
-            .WithSampler(0, DescriptorType.CombinedImageSampler, ShaderStageFlags.FragmentBit, _sampler)
-            .WithSampler(1, DescriptorType.CombinedImageSampler, ShaderStageFlags.FragmentBit, _sampler)
-            .CreateOn(_device.Device);
     }
 
     public void SetData(void* data)
@@ -98,10 +94,20 @@ public unsafe class Texture : IDisposable
             ImageLayout.ShaderReadOnlyOptimal, 1, 1);
     }
 
-    public void BindAsUIImage()
+    public void Bind(CommandBuffer cmd, ShaderEffect effect)
     {
-        _descriptorSet = Application.ctx().BindAsUIImage(this, 1);
+        if (_descriptorSet.Handle == 0)
+            throw new Exception($"Texture is not ready to bind! Call {nameof(PrepareBind)} first");
+        cmd.BindGraphicsDescriptorSet(_descriptorSet, effect);
     }
+
+    public void PrepareBind(DescriptorPool pool, DescriptorSetLayout setLayout)
+    {
+        _descriptorSet = pool.AllocateDescriptorSet(new[] {setLayout});
+        pool.UpdateDescriptorSetImage(ref _descriptorSet, ImageInfo, DescriptorType.CombinedImageSampler);
+    }
+
+    public void Free(DescriptorPool pool) => pool.FreeDescriptorSet(_descriptorSet);
     
     public DescriptorImageInfo ImageInfo => new()
     {
@@ -115,7 +121,6 @@ public unsafe class Texture : IDisposable
         _device.DestroyImage(_allocatedImage);
         _device.DestroyImageView(_imageView);
         _device.DestroySampler(_sampler);
-        _descriptorSetLayout.Dispose();
         GC.SuppressFinalize(this);
     }
 }

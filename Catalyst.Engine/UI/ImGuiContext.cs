@@ -16,10 +16,11 @@ public unsafe class ImGuiContext : IDisposable
 {
     private readonly Renderer _renderer;
     private readonly DescriptorPool _descriptorPool;
-    private  DescriptorSet[] _descriptorSets;
+    private readonly DescriptorSetLayout _descriptorSetLayout;
     private readonly ShaderEffect _shaderEffect;
     private readonly ShaderPass _shaderPass;
     private readonly Texture _fontTexture;
+    private readonly Dictionary<IntPtr, Texture> _loadedTextures = new ();
 
     private Buffer[]? _vertexBuffers;
     private Buffer[]? _indexBuffers;
@@ -47,10 +48,11 @@ public unsafe class ImGuiContext : IDisposable
         io.Fonts.GetTexDataAsRGBA32(out nint pixels, out var width, out var height);
         _descriptorPool = new DescriptorPool(_renderer.Device.Device, new[] {new DescriptorPoolSize(DescriptorType.CombinedImageSampler, 1000)}, 1000);
         _fontTexture = new Texture(_renderer.Device, (uint) width, (uint) height, Format.R8G8B8A8Unorm, pixels.ToPointer());
-        _descriptorSets = new DescriptorSet[1];
-        _descriptorSets[0] = _descriptorPool.AllocateDescriptorSet(new[] {_fontTexture.DescriptorSetLayout});
-        var descriptorImageInfo = _fontTexture.ImageInfo;
-        _descriptorPool.UpdateDescriptorSetImage(ref _descriptorSets[0], descriptorImageInfo, DescriptorType.CombinedImageSampler);
+        _descriptorSetLayout = DescriptorSetLayoutBuilder
+                               .Start()
+                               .WithSampler(0, DescriptorType.CombinedImageSampler, ShaderStageFlags.FragmentBit, _fontTexture.ImageInfo.Sampler)
+                               .CreateOn(_renderer.Device.Device);
+        _fontTexture.PrepareBind(_descriptorPool, _descriptorSetLayout);
         io.Fonts.SetTexID((nint)_fontTexture.Image.Handle);
         
         var pushRange = new PushConstantRange
@@ -60,7 +62,7 @@ public unsafe class ImGuiContext : IDisposable
             Size = sizeof(float) * 4
         };
         _shaderEffect = ShaderEffect.BuildEffect(_renderer.Device.Device, UIShaders.VertexShader, UIShaders.FragmentShader,
-                                                 new[] {_fontTexture.DescriptorSetLayout}, new[] {pushRange});
+                                                 new[] {_descriptorSetLayout}, new[] {pushRange});
         var vertexInfo = new VertexInfo(
                                         new VertexInputBindingDescription[]
                                         {
@@ -82,16 +84,6 @@ public unsafe class ImGuiContext : IDisposable
         
         _keyboard = _input.Keyboards[0];
         _keyboard.KeyChar += OnKeyChar;
-    }
-
-    public DescriptorSet BindAsUIImage(Texture t, int index)
-    {
-        var set  = _descriptorPool.AllocateDescriptorSet(new[] {_fontTexture.DescriptorSetLayout});
-        Array.Resize(ref _descriptorSets, 2);
-        _descriptorSets[index] = set;
-        var descriptorImageInfo = t.ImageInfo;
-        _descriptorPool.UpdateDescriptorSetImage(ref _descriptorSets[index], descriptorImageInfo, DescriptorType.CombinedImageSampler);
-        return set;
     }
     
     private void SetKeyMappings()
@@ -117,7 +109,19 @@ public unsafe class ImGuiContext : IDisposable
         io.KeyMap[(int)ImGuiKey.Y] = (int)Key.Y;
         io.KeyMap[(int)ImGuiKey.Z] = (int)Key.Z;
     }
-    
+
+    public void AddTexture(Texture texture)
+    {
+        texture.PrepareBind(_descriptorPool, _descriptorSetLayout);
+        _loadedTextures[(nint) texture.Image.Handle] = texture;
+    }
+
+    public void RemoveTexture(Texture texture)
+    {
+        texture.Free(_descriptorPool);
+        _loadedTextures.Remove((nint)texture.Image.Handle);
+    }
+
     private void OnKeyChar(IKeyboard kb, char @char) => _pressedChars.Add(@char);
 
     private void SetFrameData(float deltaTime = 1f/60f)
@@ -164,10 +168,7 @@ public unsafe class ImGuiContext : IDisposable
         io.KeySuper = keyboardState.IsKeyPressed(Key.SuperLeft) || keyboardState.IsKeyPressed(Key.SuperRight);
     }
 
-    public void Update(float deltaTime)
-    {
-        UpdateImGuiInput();
-    }
+    public void Update(float deltaTime) => UpdateImGuiInput();
 
     public void Render(CommandBuffer cmd)
     {
@@ -224,7 +225,7 @@ public unsafe class ImGuiContext : IDisposable
         }
 
         cmd.BindGraphicsPipeline(_shaderPass);
-        cmd.BindGraphicsDescriptorSet(_descriptorSets[0], _shaderEffect);
+        _fontTexture.Bind(cmd, _shaderEffect);
         
         if (drawData.TotalVtxCount > 0)
         {
@@ -256,12 +257,12 @@ public unsafe class ImGuiContext : IDisposable
             for (var i = 0; i < cmdList->CmdBuffer.Size; i++)
             {
                 ref var pCmd = ref cmdList->CmdBuffer.Ref<ImDrawCmd>(i);
-                if (pCmd.TextureId != IntPtr.Zero && _descriptorSets.Length > 1)
+                if (pCmd.TextureId != IntPtr.Zero)
                 {
                     if (pCmd.TextureId == (nint)_fontTexture.Image.Handle)
-                        cmd.BindGraphicsDescriptorSet(_descriptorSets[0], _shaderEffect);
+                        _fontTexture.Bind(cmd, _shaderEffect);
                     else
-                        cmd.BindGraphicsDescriptorSet(_descriptorSets[1], _shaderEffect);
+                        _loadedTextures[pCmd.TextureId].Bind(cmd, _shaderEffect);
                 }
 
                 var clipRect = new Vector4
@@ -306,8 +307,12 @@ public unsafe class ImGuiContext : IDisposable
     {
         _keyboard.KeyChar -= OnKeyChar;
         
+        _fontTexture.Free(_descriptorPool);
         _fontTexture.Dispose();
-        _descriptorPool.FreeDescriptorSets(_descriptorSets);
+        
+        foreach (var t in _loadedTextures.Values) RemoveTexture(t);
+        
+        _descriptorSetLayout.Dispose();
         _descriptorPool.Dispose();
         _shaderPass.Dispose();
         _shaderEffect.Dispose();

@@ -68,7 +68,7 @@ public class Application : IDisposable
     public static Renderer GetRenderer() => _application!._renderer;
     public static IInputContext GetInput() => _application!._input;
 
-    public static ImGuiContext ctx() => _application._uiLayer._guiContext;
+    public void LoadUITexture(Texture t) => _uiLayer.LoadTexture(t);
 
     public void Dispose()
     {
