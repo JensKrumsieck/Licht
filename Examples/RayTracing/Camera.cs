@@ -31,7 +31,7 @@ public class Camera
         _nearClip = nearClip;
         _farClip = farClip;
 
-        Position = Vector3.UnitZ * 3f;
+        Position = Vector3.UnitZ * 6f;
         _forwardDirection =  -Vector3.UnitZ;
         
         var input = Application.GetInput();

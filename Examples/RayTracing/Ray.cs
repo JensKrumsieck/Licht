@@ -2,13 +2,13 @@
 
 namespace RayTracing;
 
-public readonly ref struct Ray
+public ref struct Ray
 {
-    public readonly ref Vector3 Origin;
-    public readonly ref Vector3 Direction;
-    public Ray(ref Vector3 origin, ref Vector3 direction)
+    public Vector3 Origin;
+    public Vector3 Direction;
+    public Ray(Vector3 origin, Vector3 direction)
     {
-        Direction = ref direction;
-        Origin = ref origin;
+        Direction = direction;
+        Origin = origin;
     }
 }

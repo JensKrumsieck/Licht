@@ -16,6 +16,7 @@
     <ItemGroup>
         <ShaderDir Include="$(ProjectDir)\Shaders\**" />
         <ShaderFiles Include="$(ProjectDir)**\*.spv" />
+        <ShaderFiles Remove="bin\**" />
     </ItemGroup>
 
     <ItemGroup>
@@ -23,6 +24,7 @@
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>
+
     <Target Name="CleanCompiledShaders" AfterTargets="Clean">
         <Message Text="Clean Compiled Shaders \n@(ShaderFiles)" />
         <Delete Files="@(ShaderFiles)" />
