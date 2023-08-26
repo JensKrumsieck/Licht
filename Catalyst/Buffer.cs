@@ -40,6 +40,7 @@ public unsafe struct Buffer : IDisposable, IConvertibleTo<Silk.NET.Vulkan.Buffer
         if(size == Vk.WholeSize) System.Buffer.MemoryCopy(data, PMappedData, _size, _size);
         else
         {
+            if(size > _size) return;
             var memoryOffset = (ulong*) ((ulong)PMappedData + offset);
             System.Buffer.MemoryCopy(data, memoryOffset, size, size);
         }

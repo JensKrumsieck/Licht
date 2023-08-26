@@ -113,13 +113,13 @@ public unsafe class ImGuiContext : IDisposable
     public void AddTexture(Texture texture)
     {
         texture.PrepareBind(_descriptorPool, _descriptorSetLayout);
-        _loadedTextures[(nint) texture.Image.Handle] = texture;
+        _loadedTextures[(nint) texture.DescriptorSet.Handle] = texture;
     }
 
     public void RemoveTexture(Texture texture)
     {
+        _loadedTextures.Remove((nint)texture.DescriptorSet.Handle);
         texture.Free(_descriptorPool);
-        _loadedTextures.Remove((nint)texture.Image.Handle);
     }
 
     private void OnKeyChar(IKeyboard kb, char @char) => _pressedChars.Add(@char);

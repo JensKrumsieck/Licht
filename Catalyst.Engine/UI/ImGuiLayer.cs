@@ -62,4 +62,5 @@ public class ImGuiLayer : ILayer
     }
 
     public void LoadTexture(Texture t) => _guiContext?.AddTexture(t);
+    public void UnloadTexture(Texture t) => _guiContext?.RemoveTexture(t);
 }

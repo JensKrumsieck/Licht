@@ -69,6 +69,7 @@ public class Application : IDisposable
     public static IInputContext GetInput() => _application!._input;
 
     public void LoadUITexture(Texture t) => _uiLayer.LoadTexture(t);
+    public void UnloadUITexture(Texture t) => _uiLayer.UnloadTexture(t);
 
     public void Dispose()
     {

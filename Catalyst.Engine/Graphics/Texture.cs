@@ -1,7 +1,6 @@
 ﻿using Catalyst.Allocation;
 using Catalyst.Pipeline;
 using Catalyst.Tools;
-using ImGuiNET;
 using Silk.NET.Vulkan;
 
 namespace Catalyst.Engine.Graphics;
@@ -84,7 +83,7 @@ public unsafe class Texture : IDisposable
         using var stagingBuffer = _device.CreateBuffer(FormatTools.SizeOf(ImageFormat), Width * Height, BufferUsageFlags.TransferSrcBit,
             MemoryPropertyFlags.HostVisibleBit);
         stagingBuffer.Map().Validate();
-        stagingBuffer.WriteToBuffer(data);
+        stagingBuffer.WriteToBuffer(data, Width*Height*FormatTools.SizeOf(ImageFormat));
         stagingBuffer.Flush().Validate();
         stagingBuffer.Unmap();
         _device.TransitionImageLayout(_allocatedImage.Image, ImageFormat, ImageLayout.Undefined,
@@ -115,9 +114,19 @@ public unsafe class Texture : IDisposable
         ImageView = _imageView,
         ImageLayout = ImageLayout.ShaderReadOnlyOptimal
     };
+
+    public void Resize(uint width, uint height)
+    {
+        if (Height == height && Width == width) return;
+        Width = width;
+        Height = height;
+        Dispose();
+        AllocateImage();
+    }
     
     public void Dispose()
     {
+        _device.WaitIdle();
         _device.DestroyImage(_allocatedImage);
         _device.DestroyImageView(_imageView);
         _device.DestroySampler(_sampler);
