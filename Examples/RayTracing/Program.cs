@@ -39,12 +39,26 @@ internal class RayTracingLayer : ILayer
             Albedo = new Vector3(.2f, .3f, 1),
             Roughness = .1f
         });
+        _scene.Materials.Add(new Material
+        {
+            Albedo = new Vector3(.8f, .5f, .2f),
+            Roughness = .1f,
+            EmissionPower = 2,
+            EmissionColor = new Vector3(.8f, .5f, .2f)
+        });
         _scene.Spheres.Add(
             new Sphere
             {
                 Position = Vector3.Zero,
                 Radius = 1f,
                 MaterialIndex = 0
+            });
+        _scene.Spheres.Add(
+            new Sphere
+            {
+                Position = Vector3.UnitX * 2,
+                Radius = 1f,
+                MaterialIndex = 2
             });
         _scene.Spheres.Add(new Sphere
         {
@@ -56,7 +70,8 @@ internal class RayTracingLayer : ILayer
 
     public void OnUpdate(double deltaTime)
     {
-        _camera.OnUpdate((float) deltaTime);
+        if(_camera.OnUpdate((float) deltaTime)) 
+            _renderer.ResetFrameIndex();
     }
 
     public void OnDrawGui(double deltaTime)
@@ -85,9 +100,11 @@ internal class RayTracingLayer : ILayer
         {
             ImGui.PushID(i);
             ImGui.Text($"Material {i}");
-            ImGui.ColorEdit3("Color", ref _scene.Materials[i].Albedo, ImGuiColorEditFlags.Float);
+            ImGui.ColorEdit3("Base Color", ref _scene.Materials[i].Albedo, ImGuiColorEditFlags.Float);
             ImGui.DragFloat("Roughness", ref _scene.Materials[i].Roughness, 0.01f, 0, 1);
             ImGui.DragFloat("Metallic", ref _scene.Materials[i].Metallic, 0.01f, 0, 1);
+            ImGui.ColorEdit3("Emission Color", ref _scene.Materials[i].EmissionColor, ImGuiColorEditFlags.Float);
+            ImGui.DragFloat("Emission Power", ref _scene.Materials[i].EmissionPower, 0.01f, 0, float.MaxValue);
             ImGui.Separator();
             ImGui.PopID();
         }

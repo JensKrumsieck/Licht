@@ -2,6 +2,7 @@
 using Catalyst.Engine;
 using Catalyst.Engine.Graphics;
 using Silk.NET.Vulkan;
+using Random = Catalyst.Engine.Core.Random;
 
 namespace RayTracing;
 
@@ -11,13 +12,11 @@ public sealed unsafe class Renderer : IDisposable
     private Texture? _texture;
     private uint[]? _imageData;
 
-    public Settings Settings { get; private set; }
+    public Settings Settings { get; } = new();
     
     private Vector4[]? _accumulationData;
     private uint _frameIndex = 1;
     
-    private readonly Random _random = new Random();
-
     private Scene _activeScene;
     private Camera _activeCamera;
     
@@ -75,39 +74,39 @@ public sealed unsafe class Renderer : IDisposable
 
     private Vector4 RayGen(int x, int y)
     {
+        var seed = (uint) (x + y * _texture!.Width);
+        seed *= _frameIndex;
         var direction = _activeCamera.GetRayDirection((int) (x + y * _texture!.Width));
         var ray = new Ray(_activeCamera.Position, direction);
         
-        var color = Vector3.Zero;
-        var multiplier = 1.0f;
+        var light = Vector3.Zero;
+        var contribution = Vector3.One;
 
         var bounces = 5;
+
         for (var i = 0; i < bounces; i++)
         {
+            seed += (uint) i;
             var payload = TraceRay(ray);
             if (payload.HitDistance < 0.0f)
             {
                 var skyColor = new Vector3(.6f, .7f, .9f);
-                color += skyColor * multiplier;
+                light += skyColor * contribution;
                 break;
             }
-        
-            var lightDir = Vector3.Normalize(-Vector3.One);
-            var lightIntensity = MathF.Max(Vector3.Dot(payload.WorldNormal, -lightDir), 0.0f);
             
             var sphere = _activeScene.Spheres[payload.ObjectIndex];
             var material = _activeScene.Materials[sphere.MaterialIndex];
-            var sphereColor = material.Albedo;
-            sphereColor *= lightIntensity;
-            color += sphereColor * multiplier;
             
-            multiplier *= .5f;
+            contribution *= material.Albedo;
+            light += material.Emission;
             
             ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.001f;
-            var reflectNormal = payload.WorldNormal + material.Roughness * new Vector3(_random.NextSingle(), _random.NextSingle(), _random.NextSingle());
-            ray.Direction = ray.Direction - 2 * Vector3.Dot(reflectNormal, ray.Direction) * reflectNormal; //glm reflect impl
+            //var reflectNormal = payload.WorldNormal + material.Roughness * new Vector3(Random.Shared.NextSingle(), Random.Shared.NextSingle(), Random.Shared.NextSingle());
+            //ray.Direction = ray.Direction - 2 * Vector3.Dot(reflectNormal, ray.Direction) * reflectNormal; //glm reflect impl
+            ray.Direction = Vector3.Normalize(payload.WorldNormal + Random.InUnitSphere(ref seed));
         }
-        return new Vector4(color, 1);
+        return new Vector4(light, 1);
     }
 
     private HitPayload RayMiss(ref Ray ray) => new()
@@ -132,6 +131,7 @@ public sealed unsafe class Renderer : IDisposable
 
         _imageData = new uint[newWidth * newHeight];
         _accumulationData = new Vector4[newWidth * newHeight];
+        ResetFrameIndex();
     }
     
     public void Render(Scene scene, Camera cam)
@@ -141,17 +141,20 @@ public sealed unsafe class Renderer : IDisposable
         _activeCamera = cam;
         _activeScene = scene;
         if(_frameIndex == 1) Array.Clear(_accumulationData);
-        
-        for (var y = 0; y < _texture.Height; y++)
+
+        Parallel.For(0, (int)_texture.Height,y =>
         {
-            for (var x = 0; x < _texture.Width ; x++)
+            for (var x = 0; x < _texture.Width; x++)
             {
-                var color = RayGen(x,y);
-                _accumulationData[x + y * _texture.Width] *= color;
-                color = Vector4.Clamp(color, Vector4.Zero, Vector4.One);
-                _imageData[x + y * _texture.Width] = Utils.ConvertToAbgr(ref color);
-            }  
-        }
+                var color = RayGen(x, y);
+                _accumulationData[x + y * _texture.Width] += color;
+                var accumulatedColor = _accumulationData[x + y * _texture.Width] / _frameIndex;
+
+                accumulatedColor = Vector4.Clamp(accumulatedColor, Vector4.Zero, Vector4.One);
+                _imageData[x + y * _texture.Width] = Utils.ConvertToAbgr(ref accumulatedColor);
+            }
+        });
+        
         fixed(uint* pImageData = _imageData)
             _texture.SetData(pImageData);
 
