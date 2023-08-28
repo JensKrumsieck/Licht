@@ -2,7 +2,6 @@
 using Catalyst.Engine.Graphics;
 using ImGuiNET;
 using Silk.NET.Input;
-using Silk.NET.Windowing;
 
 namespace Catalyst.Engine.UI;
 

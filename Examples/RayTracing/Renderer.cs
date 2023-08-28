@@ -1,7 +1,12 @@
 ﻿using System.Numerics;
+using Catalyst;
 using Catalyst.Engine;
 using Catalyst.Engine.Graphics;
+using Catalyst.Pipeline;
 using Silk.NET.Vulkan;
+using DescriptorPool = Catalyst.DescriptorPool;
+using DescriptorSet = Catalyst.DescriptorSet;
+using DescriptorSetLayout = Catalyst.DescriptorSetLayout;
 using Random = Catalyst.Engine.Core.Random;
 
 namespace RayTracing;
@@ -19,10 +24,31 @@ public sealed unsafe class Renderer : IDisposable
     
     private Scene _activeScene;
     private Camera _activeCamera;
-    
-    public Renderer(GraphicsDevice device) => _device = device;
 
-    public Texture FinalImage => _texture!;
+    private ComputePass _postProcessPass;
+    private readonly ShaderEffect _postProcessEffect;
+    private readonly DescriptorPool _descriptorPool;
+    private readonly DescriptorSetLayout _descriptorSetLayout;
+    private DescriptorSet _descriptorSet;
+    private Texture? _outputTexture;
+    
+    public Renderer(GraphicsDevice device)
+    {
+        _device = device; 
+        _descriptorPool = new DescriptorPool(_device.Device, new[] {new DescriptorPoolSize(DescriptorType.StorageImage, 1000)}, 1000);
+        _descriptorSetLayout = DescriptorSetLayoutBuilder
+            .Start()
+            .With(0, DescriptorType.StorageImage, ShaderStageFlags.ComputeBit)
+            .With(1, DescriptorType.StorageImage, ShaderStageFlags.ComputeBit)
+            .CreateOn(_device.Device);
+        var setLayouts = new[] {_descriptorSetLayout};
+        _descriptorSet = _descriptorPool.AllocateDescriptorSet(setLayouts);
+        _postProcessEffect = ShaderEffect.BuildComputeEffect(_device.Device, "./Shaders/gaussian.comp.spv",
+            setLayouts);
+        _postProcessPass = new ComputePass(_device.Device, _postProcessEffect);
+    }
+
+    public Texture FinalImage => _outputTexture!;
 
     private HitPayload TraceRay(Ray ray)
     {
@@ -124,11 +150,26 @@ public sealed unsafe class Renderer : IDisposable
             _texture.Resize(newWidth, newHeight);
         }
         else
-            _texture = new Texture(_device, newWidth, newHeight, Format.R8G8B8A8Srgb, null);
+            _texture = new Texture(_device, newWidth, newHeight, Format.R8G8B8A8Unorm, ImageLayout.General);
+
+        if (_outputTexture is not null)
+        {
+            if (_outputTexture.Width == newWidth && _outputTexture.Height == newHeight)
+                return;
+            _outputTexture.Resize(newWidth, newHeight);
+        }
+        else
+            _outputTexture = new Texture(_device, newWidth, newHeight, Format.R8G8B8A8Unorm, ImageLayout.General);
+        
+        _descriptorPool.UpdateDescriptorSetImage(ref _descriptorSet, _texture.ImageInfo, DescriptorType.StorageImage);
+        _descriptorPool.UpdateDescriptorSetImage(ref _descriptorSet, _outputTexture.ImageInfo, DescriptorType.StorageImage, 1);
+        
+        Application.GetApplication().UnloadUITexture(_outputTexture);
+        Application.GetApplication().LoadUITexture(_outputTexture);
 
         Application.GetApplication().UnloadUITexture(_texture);
         Application.GetApplication().LoadUITexture(_texture);
-
+        
         _imageData = new uint[newWidth * newHeight];
         _accumulationData = new Vector4[newWidth * newHeight];
         ResetFrameIndex();
@@ -157,6 +198,17 @@ public sealed unsafe class Renderer : IDisposable
         
         fixed(uint* pImageData = _imageData)
             _texture.SetData(pImageData);
+        
+        _device.TransitionImageLayout(_outputTexture.Image, _outputTexture.ImageFormat, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 1, 1);
+        _device.TransitionImageLayout(_outputTexture.Image, _outputTexture.ImageFormat, ImageLayout.TransferDstOptimal,
+            ImageLayout.General, 1, 1);
+        
+        var cmd = _device.BeginSingleTimeCommands();
+        cmd.BindComputePipeline(_postProcessPass);
+        
+        cmd.BindComputeDescriptorSet(_descriptorSet, _postProcessEffect);
+        cmd.Dispatch(_outputTexture!.Width/16, _outputTexture.Height/16, 1);
+        _device.EndSingleTimeCommands(cmd);
 
         if (Settings.Accumulate) _frameIndex++;
         else _frameIndex = 1;
@@ -164,5 +216,14 @@ public sealed unsafe class Renderer : IDisposable
 
     public void ResetFrameIndex() => _frameIndex = 1;
     
-    public void Dispose() => _texture?.Dispose();
+    public void Dispose()
+    {
+        _texture?.Dispose();
+        _outputTexture?.Dispose();
+        
+        _descriptorPool.Dispose();
+        _descriptorSetLayout.Dispose();
+        _postProcessEffect.Dispose();
+        _postProcessPass.Dispose();
+    }
 }

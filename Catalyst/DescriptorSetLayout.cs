@@ -7,7 +7,7 @@ public readonly unsafe struct DescriptorSetLayout : IDisposable, IConvertibleTo<
 {
     private readonly Device _device;
     public readonly Silk.NET.Vulkan.DescriptorSetLayout VkDescriptorSetLayout;
-    
+    public ulong Handle => VkDescriptorSetLayout.Handle;
     public DescriptorSetLayout(Device device, Dictionary<uint, DescriptorSetLayoutBinding> bindings)
     {
         _device = device;

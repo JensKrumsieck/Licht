@@ -96,6 +96,13 @@ public sealed class GraphicsDevice : IDisposable
             srcStage = PipelineStageFlags.TopOfPipeBit;
             dstStage = PipelineStageFlags.EarlyFragmentTestsBit;
         }
+        else if (oldLayout == ImageLayout.TransferDstOptimal && newLayout == ImageLayout.General)
+        {
+            barrierInfo.SrcAccessMask = AccessFlags.TransferWriteBit;
+            barrierInfo.DstAccessMask = AccessFlags.ShaderReadBit;
+            srcStage = PipelineStageFlags.TransferBit;
+            dstStage = PipelineStageFlags.ComputeShaderBit;
+        }
         else throw new Exception("Unsupported Layout Transition");
 
         cmd.ImageMemoryBarrier(barrierInfo, srcStage, dstStage);

@@ -25,6 +25,7 @@ public class Camera
     private const float RotationSpeed = .3f;
     private readonly IMouse _mouse;
     private readonly IKeyboard _keyboard;
+    
     public Camera(float verticalFoV, float nearClip, float farClip)
     {
         _verticalFoV = verticalFoV;

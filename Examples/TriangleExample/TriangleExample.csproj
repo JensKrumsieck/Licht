@@ -16,7 +16,6 @@
     <ItemGroup>
         <ShaderDir Include="$(ProjectDir)\Shaders\**" />
         <ShaderFiles Include="$(ProjectDir)**\*.spv" />
-        <ShaderFiles Remove="bin\**" />
     </ItemGroup>
 
     <ItemGroup>

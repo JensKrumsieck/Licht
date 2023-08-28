@@ -17,7 +17,7 @@ public readonly unsafe struct DescriptorSet : IConvertibleTo<Silk.NET.Vulkan.Des
             {
                 SType = StructureType.DescriptorSetAllocateInfo,
                 DescriptorPool = pool,
-                DescriptorSetCount = (uint) setLayouts.Length,
+                DescriptorSetCount = 1,
                 PSetLayouts = pSetLayouts
             };
             vk.AllocateDescriptorSets(device, allocInfo, out VkDescriptorSet).Validate();

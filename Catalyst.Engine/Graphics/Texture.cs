@@ -18,17 +18,31 @@ public unsafe class Texture : IDisposable
     public uint Width { get; private set; }
     public uint Height { get; private set; }
     public readonly Format ImageFormat;
-    
+    private readonly ImageLayout _desiredLayout;
+
     public Image Image => _allocatedImage.Image;
     public DescriptorSet DescriptorSet => _descriptorSet;
 
-    //TOOD: Set by File
-    public Texture(GraphicsDevice device, uint width, uint height, Format imageFormat, void* data)
+    public Texture(GraphicsDevice device, uint width, uint height, Format imageFormat, ImageLayout desiredLayout, void* data = null)
     {
         _device = device;
         Width = width;
         Height = height;
         ImageFormat = imageFormat;
+        _desiredLayout = desiredLayout;
+        AllocateImage();
+        if(data != null)
+            SetData(data);
+    }
+    
+    //TOOD: Set by File
+    public Texture(GraphicsDevice device, uint width, uint height, Format imageFormat, void* data = null)
+    {
+        _device = device;
+        Width = width;
+        Height = height;
+        ImageFormat = imageFormat;
+        _desiredLayout = ImageLayout.ShaderReadOnlyOptimal;
         AllocateImage();
         if(data != null)
             SetData(data);
@@ -45,7 +59,7 @@ public unsafe class Texture : IDisposable
             ArrayLayers = 1,
             Samples = SampleCountFlags.Count1Bit,
             Tiling = ImageTiling.Optimal,
-            Usage = ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit,
+            Usage = ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.StorageBit,
             SharingMode = SharingMode.Exclusive,
             InitialLayout = ImageLayout.Undefined,
             Extent = ImageExtent
@@ -90,7 +104,7 @@ public unsafe class Texture : IDisposable
             ImageLayout.TransferDstOptimal, 1, 1);
         _device.CopyBufferToImage(stagingBuffer, _allocatedImage.Image, ImageLayout.TransferDstOptimal, ImageFormat, ImageExtent);
         _device.TransitionImageLayout(_allocatedImage.Image, ImageFormat, ImageLayout.TransferDstOptimal,
-            ImageLayout.ShaderReadOnlyOptimal, 1, 1);
+            _desiredLayout, 1, 1);
     }
 
     public void Bind(CommandBuffer cmd, ShaderEffect effect)
@@ -112,7 +126,7 @@ public unsafe class Texture : IDisposable
     {
         Sampler = _sampler,
         ImageView = _imageView,
-        ImageLayout = ImageLayout.ShaderReadOnlyOptimal
+        ImageLayout = _desiredLayout
     };
 
     public void Resize(uint width, uint height)

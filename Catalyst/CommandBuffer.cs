@@ -1,5 +1,4 @@
-﻿using System.Security.Cryptography;
-using Catalyst.Pipeline;
+﻿using Catalyst.Pipeline;
 using Catalyst.Tools;
 using Silk.NET.Vulkan;
 
@@ -29,7 +28,7 @@ public unsafe struct CommandBuffer : IConvertibleTo<Silk.NET.Vulkan.CommandBuffe
     public void SetViewport(Viewport viewport) => vk.CmdSetViewport(this, 0, 1, viewport);
     public void SetScissor(Rect2D scissor) => vk.CmdSetScissor(this, 0, 1, scissor);
 
-    public unsafe void ImageMemoryBarrier(ImageMemoryBarrier barrierInfo, PipelineStageFlags srcStageFlags,
+    public void ImageMemoryBarrier(ImageMemoryBarrier barrierInfo, PipelineStageFlags srcStageFlags,
                                           PipelineStageFlags dstStageFlags) =>
         vk.CmdPipelineBarrier(this, srcStageFlags, dstStageFlags,
                               0, 0, null, 0, null, 1, barrierInfo);
@@ -40,13 +39,24 @@ public unsafe struct CommandBuffer : IConvertibleTo<Silk.NET.Vulkan.CommandBuffe
     public void BindGraphicsPipeline(Silk.NET.Vulkan.Pipeline pipeline) =>
         vk.CmdBindPipeline(VkCommandBuffer, PipelineBindPoint.Graphics, pipeline);
 
-    public unsafe void BindGraphicsDescriptorSet(DescriptorSet set, ShaderEffect effect) =>
+    public void BindComputePipeline(Silk.NET.Vulkan.Pipeline pipeline) =>
+        vk.CmdBindPipeline(VkCommandBuffer, PipelineBindPoint.Compute, pipeline);
+
+    public void BindGraphicsDescriptorSet(DescriptorSet set, ShaderEffect effect) =>
         vk.CmdBindDescriptorSets(this, PipelineBindPoint.Graphics, effect.EffectLayout, 0, 1, set, 0, null);
 
-    public unsafe void BindGraphicsDescriptorSets(DescriptorSet[] sets, ShaderEffect effect)
+    public void BindGraphicsDescriptorSets(DescriptorSet[] sets, ShaderEffect effect)
     {
         fixed(Silk.NET.Vulkan.DescriptorSet* pSets = sets.AsArray<DescriptorSet, Silk.NET.Vulkan.DescriptorSet>())
-            vk.CmdBindDescriptorSets(this, PipelineBindPoint.Graphics, effect.EffectLayout, 0, 1, pSets, 0, null);
+            vk.CmdBindDescriptorSets(this, PipelineBindPoint.Graphics, effect.EffectLayout, 0, (uint)sets.Length, pSets, 0, null);
+    }
+    public void BindComputeDescriptorSet(DescriptorSet set, ShaderEffect effect) =>
+        vk.CmdBindDescriptorSets(this, PipelineBindPoint.Compute, effect.EffectLayout, 0, 1, set, 0, null);
+
+    public void BindComputeDescriptorSets(DescriptorSet[] sets, ShaderEffect effect)
+    {
+        fixed(Silk.NET.Vulkan.DescriptorSet* pSets = sets.AsArray<DescriptorSet, Silk.NET.Vulkan.DescriptorSet>())
+            vk.CmdBindDescriptorSets(this, PipelineBindPoint.Compute, effect.EffectLayout, 0, (uint)sets.Length, pSets, 0, null);
     }
 
 
@@ -57,9 +67,10 @@ public unsafe struct CommandBuffer : IConvertibleTo<Silk.NET.Vulkan.CommandBuffe
 
     public void PushConstants(ShaderEffect effect, ShaderStageFlags flags, uint offset, uint scale, void* data) =>
         vk.CmdPushConstants(this, effect.EffectLayout, flags, offset, scale, data);
-
     public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance) =>
         vk.CmdDraw(this, vertexCount, instanceCount, firstVertex, firstInstance);
     public void DrawIndexed(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance) =>
         vk.CmdDrawIndexed(this, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+    public void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ = 1) =>
+        vk.CmdDispatch(VkCommandBuffer, groupCountX, (uint) groupCountY, (uint) groupCountZ);
 }

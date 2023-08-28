@@ -54,7 +54,7 @@ public readonly unsafe struct ShaderPass : IDisposable, IConvertibleTo<Silk.NET.
                 BasePipelineIndex = -1,
                 BasePipelineHandle = default
             };
-            vk.CreateGraphicsPipelines(device, default, 1, createInfo, null, out Pipeline);
+            vk.CreateGraphicsPipelines(device, default, 1, createInfo, null, out Pipeline).Validate();
         }
     }
     public static implicit operator Silk.NET.Vulkan.Pipeline(ShaderPass p) => p.Pipeline;

@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using Catalyst.Tools;
+﻿using Catalyst.Tools;
 using Silk.NET.Vulkan;
 
 namespace Catalyst;

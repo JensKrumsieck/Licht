@@ -39,6 +39,20 @@ public readonly unsafe struct ShaderEffect : IDisposable
         var pipelineLayout = CreatePipelineLayout(device, setLayouts?.AsArray<DescriptorSetLayout, Silk.NET.Vulkan.DescriptorSetLayout>(), pushRanges);
         return new ShaderEffect(device, pipelineLayout, setLayouts, stages);
     }
+
+    public static ShaderEffect BuildComputeEffect(Device device, string computeShader,
+        DescriptorSetLayout[]? setLayouts, PushConstantRange[]? pushRanges = null)
+    {
+        var stage = ShaderStage.FromFile(device, computeShader, ShaderStageFlags.ComputeBit);
+        return BuildComputeEffect(device, stage, setLayouts, pushRanges);
+    }
+    
+    private static ShaderEffect BuildComputeEffect(Device device, ShaderStage computeStage, DescriptorSetLayout[]? setLayouts, PushConstantRange[]? pushRanges = null)
+    {
+        var stages = new[] {computeStage};
+        var pipelineLayout = CreatePipelineLayout(device, setLayouts?.AsArray<DescriptorSetLayout, Silk.NET.Vulkan.DescriptorSetLayout>(), pushRanges);
+        return new ShaderEffect(device, pipelineLayout, setLayouts, stages);
+    }
     
     private static PipelineLayout CreatePipelineLayout(Device device, Silk.NET.Vulkan.DescriptorSetLayout[]? setLayouts, PushConstantRange[]? pushRanges)
     {
