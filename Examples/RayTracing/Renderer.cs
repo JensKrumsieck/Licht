@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using Catalyst;
 using Catalyst.Engine;
 using Catalyst.Engine.Graphics;
@@ -43,12 +44,13 @@ public sealed unsafe class Renderer : IDisposable
             .CreateOn(_device.Device);
         var setLayouts = new[] {_descriptorSetLayout};
         _descriptorSet = _descriptorPool.AllocateDescriptorSet(setLayouts);
+        var pushConstants = new PushConstantRange(ShaderStageFlags.ComputeBit,0,(uint) sizeof(BlurSettings));
         _postProcessEffect = ShaderEffect.BuildComputeEffect(_device.Device, "./Shaders/gaussian.comp.spv",
-            setLayouts);
+            setLayouts, pushConstants);
         _postProcessPass = new ComputePass(_device.Device, _postProcessEffect);
     }
 
-    public Texture FinalImage => _outputTexture!;
+    public Texture FinalImage => Settings.Blur ? _outputTexture! : _texture!;
 
     private HitPayload TraceRay(Ray ray)
     {
@@ -199,19 +201,23 @@ public sealed unsafe class Renderer : IDisposable
         fixed(uint* pImageData = _imageData)
             _texture.SetData(pImageData);
         
-        _device.TransitionImageLayout(_outputTexture.Image, _outputTexture.ImageFormat, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 1, 1);
+        if (Settings.Accumulate) _frameIndex++;
+        else _frameIndex = 1;
+        
+        if(!Settings.Blur) return;
+        //call blur compute shader
+        _device.TransitionImageLayout(_outputTexture!.Image, _outputTexture.ImageFormat, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 1, 1);
         _device.TransitionImageLayout(_outputTexture.Image, _outputTexture.ImageFormat, ImageLayout.TransferDstOptimal,
             ImageLayout.General, 1, 1);
         
         var cmd = _device.BeginSingleTimeCommands();
         cmd.BindComputePipeline(_postProcessPass);
-        
+        var blurSettings = Settings.BlurSettings;
+        cmd.PushConstants(_postProcessEffect, ShaderStageFlags.ComputeBit, 0, (uint) sizeof(BlurSettings), &blurSettings);
         cmd.BindComputeDescriptorSet(_descriptorSet, _postProcessEffect);
-        cmd.Dispatch(_outputTexture!.Width/16, _outputTexture.Height/16, 1);
+        cmd.Dispatch(_outputTexture!.Width/8, _outputTexture.Height/8, 1);
         _device.EndSingleTimeCommands(cmd);
 
-        if (Settings.Accumulate) _frameIndex++;
-        else _frameIndex = 1;
     }
 
     public void ResetFrameIndex() => _frameIndex = 1;

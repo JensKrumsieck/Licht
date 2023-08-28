@@ -80,6 +80,13 @@ internal class RayTracingLayer : ILayer
         ImGui.Begin("Settings");
         ImGui.Text($"Last Render: {_lastRenderTime} ms");
         ImGui.Checkbox("Accumulate", ref _renderer.Settings.Accumulate);
+        ImGui.Separator();
+        ImGui.Checkbox("Enable Blur", ref _renderer.Settings.Blur);
+        if(_renderer.Settings.Blur){
+            ImGui.DragFloat("Blur Sigma", ref _renderer.Settings.BlurSettings.Sigma, .01f, 0, float.MaxValue);
+            ImGui.DragInt("Blur Kernel", ref _renderer.Settings.BlurSettings.KernelSize, 1, 0, int.MaxValue);
+        }
+        ImGui.Separator();
         if(ImGui.Button("Reset")) _renderer.ResetFrameIndex();
         ImGui.End();
         

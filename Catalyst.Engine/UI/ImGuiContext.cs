@@ -62,7 +62,7 @@ public unsafe class ImGuiContext : IDisposable
             Size = sizeof(float) * 4
         };
         _shaderEffect = ShaderEffect.BuildEffect(_renderer.Device.Device, UIShaders.VertexShader, UIShaders.FragmentShader,
-                                                 new[] {_descriptorSetLayout}, new[] {pushRange});
+                                                 new[] {_descriptorSetLayout}, pushRange);
         var vertexInfo = new VertexInfo(
                                         new VertexInputBindingDescription[]
                                         {

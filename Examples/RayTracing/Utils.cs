@@ -14,7 +14,7 @@ public static class Utils
         var a = (uint)(color.W * 255.0f);
         return (a << 24) | (b << 16) | (g << 8) | r;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Quaternion CrossProduct(Quaternion q1, Quaternion q2) => new(
         q1.W * q2.X + q1.X * q2.W + q1.Y * q2.Z - q1.Z * q2.Y,
