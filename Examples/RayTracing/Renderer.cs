@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
 using Catalyst;
 using Catalyst.Engine;
 using Catalyst.Engine.Graphics;
@@ -54,49 +53,37 @@ public sealed unsafe class Renderer : IDisposable
 
     private HitPayload TraceRay(Ray ray)
     {
-        var closestSphere = -1;
+        var objectIndex = -1;
         var hitDistance = float.MaxValue;
 
-        for (var i = 0; i < _activeScene.Spheres.Count; i++)
+        for (var i = 0; i < _activeScene.Objects.Count; i++)
         {
-            var sphere = _activeScene.Spheres[i];
-            var origin = ray.Origin - sphere.Position;
-            var radius = sphere.Radius;
-
-            var a = Vector3.Dot(ray.Direction, ray.Direction);
-            var b = 2.0f * Vector3.Dot(origin, ray.Direction);
-            var c = Vector3.Dot(origin, origin) - radius * radius;
-
-            var discriminant = b * b - 4 * a * c;
-
-            if (discriminant < 0) continue;
-
-            //var t0 = (-b + MathF.Sqrt(discriminant)) / (2.0f * a);
-            var closestT = (-b - MathF.Sqrt(discriminant)) / (2.0f * a);
+            var shape = _activeScene.Objects[i];
+            var closestT = shape.ClosestT(ref ray);
             if (closestT > 0.0f && closestT < hitDistance)
             {
                 hitDistance = closestT;
-                closestSphere = i;
+                objectIndex = i;
             }
         }
 
-        if (closestSphere < 0) return RayMiss(ref ray);
-        return ClosestHit(ref ray, hitDistance, closestSphere);
+        if (objectIndex < 0) return RayMiss(ref ray);
+        return ClosestHit(ref ray, hitDistance, objectIndex);
         
     }
 
     private HitPayload ClosestHit(ref Ray ray, float hitDistance, int objectIndex)
     {
-        var sphere = _activeScene.Spheres[objectIndex];
-        var origin = ray.Origin - sphere.Position;
+        var shape = _activeScene.Objects[objectIndex];
+        var origin = ray.Origin - shape.Position;
         var hitPoint = origin + ray.Direction * hitDistance;
-        var normal = Vector3.Normalize(hitPoint);
+        var normal = shape.Normal(hitPoint);
         return new HitPayload
         {
             ObjectIndex = objectIndex,
             HitDistance = hitDistance,
             WorldNormal = normal,
-            WorldPosition = hitPoint + sphere.Position
+            WorldPosition = hitPoint + shape.Position
         };
     }
 
@@ -118,23 +105,48 @@ public sealed unsafe class Renderer : IDisposable
             var payload = TraceRay(ray);
             if (payload.HitDistance < 0.0f)
             {
-                var skyColor = new Vector3(.6f, .7f, .9f);
-                light += skyColor * contribution;
+                if(Settings.UseWorld)
+                    light += Settings.WorldColor * contribution;
                 break;
             }
             
-            var sphere = _activeScene.Spheres[payload.ObjectIndex];
-            var material = _activeScene.Materials[sphere.MaterialIndex];
-            
-            contribution *= material.Albedo;
-            light += material.Emission;
-            
+            var shape = _activeScene.Objects[payload.ObjectIndex];
+            var material = _activeScene.Materials[shape.MaterialIndex];
+
             ray.Origin = payload.WorldPosition + payload.WorldNormal * 0.001f;
-            //var reflectNormal = payload.WorldNormal + material.Roughness * new Vector3(Random.Shared.NextSingle(), Random.Shared.NextSingle(), Random.Shared.NextSingle());
-            //ray.Direction = ray.Direction - 2 * Vector3.Dot(reflectNormal, ray.Direction) * reflectNormal; //glm reflect impl
-            ray.Direction = Vector3.Normalize(payload.WorldNormal + Random.InUnitSphere(ref seed));
+
+            var specularChance = material.Specular;
+            if (specularChance > 0.0f)
+                specularChance = Fresnel(1.0f, 1.0f, ray.Direction, payload.WorldNormal, material.Specular, 1.0f);
+            
+            var doSpecular = (Random.Float(ref seed) < specularChance ? 1.0f: 0.0f);
+            var diffuseRayDir = Vector3.Normalize(payload.WorldNormal + Random.InHemisphere(ref seed, payload.WorldNormal));
+            var specularRayDir = ray.Direction - 2 * Vector3.Dot(payload.WorldNormal, ray.Direction) * payload.WorldNormal;
+            specularRayDir = Vector3.Normalize(Vector3.Lerp(specularRayDir, diffuseRayDir, material.Roughness * material.Roughness));
+            ray.Direction = Vector3.Lerp(diffuseRayDir, specularRayDir, doSpecular);
+            
+            light += material.Emission * contribution;
+            contribution *= Vector3.Lerp(material.Albedo, material.Specular * material.Albedo, doSpecular);
+            
         }
         return new Vector4(light, 1);
+    }
+
+    private static float Fresnel(float n1, float n2, Vector3 normal, Vector3 incident, float f0, float f90)
+    {
+        var r0 = (n1 - n2) / (n1 + n2);
+        r0 *= r0;
+        var cosX = -Vector3.Dot(normal, incident);
+        if (n1 > n2)
+        {
+            var n = n1 / n2;
+            var sinT2 = n * n * (1 - cosX * cosX);
+            if (sinT2 > 1.0f) return f90;
+            cosX = MathF.Sqrt(1.0f - sinT2);
+        }
+
+        var ret = r0 + (1.0f - r0) * MathF.Pow(1 - cosX, 5);
+        return f0 * (1 - ret) + f90 * ret;
     }
 
     private HitPayload RayMiss(ref Ray ray) => new()
@@ -192,8 +204,10 @@ public sealed unsafe class Renderer : IDisposable
                 var color = RayGen(x, y);
                 _accumulationData[x + y * _texture.Width] += color;
                 var accumulatedColor = _accumulationData[x + y * _texture.Width] / _frameIndex;
+                
+                accumulatedColor = AcesToneMapping(accumulatedColor);
+                accumulatedColor = GammaCorrection(accumulatedColor, 2.4f);
 
-                accumulatedColor = Vector4.Clamp(accumulatedColor, Vector4.Zero, Vector4.One);
                 _imageData[x + y * _texture.Width] = Utils.ConvertToAbgr(ref accumulatedColor);
             }
         });
@@ -218,6 +232,27 @@ public sealed unsafe class Renderer : IDisposable
         cmd.Dispatch(_outputTexture!.Width/8, _outputTexture.Height/8, 1);
         _device.EndSingleTimeCommands(cmd);
 
+    }
+    private static Vector4 GammaCorrection(Vector4 color, float gamma = 2f)
+    {
+        var exponent = 1f / gamma;
+        return new Vector4(
+            MathF.Pow(color.X, exponent),
+            MathF.Pow(color.Y, exponent),
+            MathF.Pow(color.Z, exponent),
+            MathF.Pow(color.W, exponent));
+    }
+    
+    private static Vector4 AcesToneMapping(Vector4 color)
+    {
+        color *= 0.6f;
+        float a = 2.51f;
+        float b = 0.03f;
+        float c = 2.43f;
+        float d = 0.59f;
+        float e = 0.14f;
+        return Vector4.Clamp(
+            (color * (a * color + b * Vector4.One)) / (color * (c * color + d * Vector4.One) + e * Vector4.One), Vector4.Zero, Vector4.One);
     }
 
     public void ResetFrameIndex() => _frameIndex = 1;

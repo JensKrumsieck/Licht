@@ -27,4 +27,10 @@ public static class Random
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3 InUnitSphere(ref uint seed) => Vector3.Normalize(Vec3(ref seed, -1, 1));
+
+    public static Vector3 InHemisphere(ref uint seed, Vector3 normal)
+    {
+        var inUnitSphere = InUnitSphere(ref seed);
+        return Vector3.Dot(inUnitSphere, normal) > 0 ? inUnitSphere : -inUnitSphere;
+    }
 }

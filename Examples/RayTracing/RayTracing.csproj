@@ -31,10 +31,5 @@
     <Target Name="CompileShaders" BeforeTargets="ResolveReferences">
         <Message Text="Compile Shaders \n@(ShaderDir)@(VertexShader)" />
         <Exec Command="glslc &quot;%(ShaderDir.FullPath)&quot; -o &quot;%(ShaderDir.FullPath).spv&quot;" Condition="'%(ShaderDir.Extension)' != '.spv'" />
-        <ItemGroup>
-            <None Include="$(ProjectDir)**\*.spv">
-                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </None>
-        </ItemGroup>
     </Target>
 </Project>
