@@ -21,4 +21,8 @@
     <ItemGroup>
       <EmbeddedResource Include="Assets\Roboto-Regular.ttf"/>
     </ItemGroup>
+    
+    <ItemGroup>
+      <Compile Remove="Entities\ISystem.cs" />
+    </ItemGroup>
 </Project>
