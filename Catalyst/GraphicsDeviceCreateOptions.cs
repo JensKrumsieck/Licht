@@ -30,6 +30,8 @@ public struct GraphicsDeviceCreateOptions
         ValidateLayers();
         ValidateInstanceExtensions();
         ValidateDeviceExtensions();
+        
+        if (PhysicalDeviceSelector is null) PhysicalDeviceSelector = SelectorTools.DefaultGpuSelector;
     }
     
     private void ValidateLayers()
