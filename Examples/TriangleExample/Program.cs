@@ -13,6 +13,7 @@ var app = builder.Build();
 app.UseVulkan(new GraphicsDeviceCreateOptions());
 app.AttachLayer<ExampleAppLayer>();
 app.Run();
+app.Dispose();
 
 namespace TriangleExample
 {

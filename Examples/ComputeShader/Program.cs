@@ -26,6 +26,7 @@ app.UseVulkan(options)
     .UseImGui();
 app.AttachLayer<ComputeShaderAppLayer>();
 app.Run();
+app.Dispose();
 
 namespace ComputeShader
 {

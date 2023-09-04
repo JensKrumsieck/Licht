@@ -15,6 +15,7 @@ app.UseVulkan(new GraphicsDeviceCreateOptions())
     .UseImGui();
 app.AttachLayer<ImGuiAppLayer>();
 app.Run();
+app.Dispose();
 
 namespace ImGuiExample
 {
