@@ -46,7 +46,7 @@ public unsafe class ImGuiContext : IDisposable
         
         io.Fonts.GetTexDataAsRGBA32(out nint pixels, out var width, out var height);
         _descriptorPool = new DescriptorPool(_renderer.Device.VkDevice, new[] {new DescriptorPoolSize(DescriptorType.CombinedImageSampler, 1000)}, 1000);
-        _fontTexture = new Texture(_renderer.Device, (uint) width, (uint) height, Format.R8G8B8A8Unorm, pixels.ToPointer());
+        _fontTexture = new Texture(_renderer.Device, (uint) width, (uint) height, Format.R8G8B8A8Unorm, ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit, pixels.ToPointer());
         _descriptorSetLayout = DescriptorSetLayoutBuilder
                                .Start()
                                .WithSampler(0, DescriptorType.CombinedImageSampler, ShaderStageFlags.FragmentBit, _fontTexture.ImageInfo.Sampler)

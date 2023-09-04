@@ -20,23 +20,25 @@ public unsafe class Texture : IDisposable
     public uint Height { get; private set; }
     public readonly Format ImageFormat;
     private readonly ImageLayout _desiredLayout;
+    private readonly ImageUsageFlags _imageUsage;
 
     public Image Image => _allocatedImage.Image;
     public DescriptorSet DescriptorSet => _descriptorSet;
 
-    public Texture(GraphicsDevice device, uint width, uint height, Format imageFormat, ImageLayout desiredLayout, void* data = null)
+    public Texture(GraphicsDevice device, uint width, uint height, Format imageFormat, ImageLayout desiredLayout, ImageUsageFlags flags = ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit, void* data = null)
     {
         _device = device;
         Width = width;
         Height = height;
         ImageFormat = imageFormat;
         _desiredLayout = desiredLayout;
+        _imageUsage = flags;
         AllocateImage();
         if(data != null)
             SetData(data);
     }
 
-    public Texture(GraphicsDevice device, string filename, ImageLayout desiredLayout, Format imageFormat = Format.R8G8B8A8Unorm)
+    public Texture(GraphicsDevice device, string filename, ImageLayout desiredLayout, Format imageFormat = Format.R8G8B8A8Unorm, ImageUsageFlags flags = ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit)
     {
         _device = device;
         using var fs = File.Open(filename, FileMode.Open);
@@ -50,16 +52,18 @@ public unsafe class Texture : IDisposable
         Height = (uint) image.Height;
         ImageFormat = imageFormat;
         _desiredLayout = desiredLayout;
+        _imageUsage = flags;
         AllocateImage();
         SetData((void*)pixels);
     }
     
-    public Texture(GraphicsDevice device, uint width, uint height, Format imageFormat, void* data = null)
+    public Texture(GraphicsDevice device, uint width, uint height, Format imageFormat, ImageUsageFlags flags = ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit, void* data = null)
     {
         _device = device;
         Width = width;
         Height = height;
         ImageFormat = imageFormat;
+        _imageUsage = flags;
         _desiredLayout = ImageLayout.ShaderReadOnlyOptimal;
         AllocateImage();
         if(data != null)
@@ -77,7 +81,7 @@ public unsafe class Texture : IDisposable
             ArrayLayers = 1,
             Samples = SampleCountFlags.Count1Bit,
             Tiling = ImageTiling.Optimal,
-            Usage = ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.StorageBit,
+            Usage = _imageUsage,
             SharingMode = SharingMode.Exclusive,
             InitialLayout = ImageLayout.Undefined,
             Extent = ImageExtent
