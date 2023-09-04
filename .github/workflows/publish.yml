@@ -20,7 +20,7 @@ jobs:
       - name: Install Dependencies
         run: dotnet restore
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build ./Catalyze --configuration Release --no-restore
       - name: Pack
         run: dotnet pack -c Release --no-restore --no-build
       - name: Push Nuget
