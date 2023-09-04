@@ -21,9 +21,9 @@ app.Run();
 
 internal class ExampleAppLayer : IAppLayer
 {
-private Renderer _renderer = null!;
-private ShaderEffect _shaderEffect;
-private ShaderPass _shaderPass;
+    private Renderer _renderer = null!;
+    private ShaderEffect _shaderEffect;
+    private ShaderPass _shaderPass;
 
     public void OnAttach()
     {
