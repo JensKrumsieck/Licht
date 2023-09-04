@@ -33,7 +33,7 @@ public unsafe struct Allocation : IDisposable
         PMappedData = null;
     }
 
-    public readonly void Dispose()
+    public void Dispose()
     {
         if(PMappedData is null) Unmap();
         _allocator.Free(this);
