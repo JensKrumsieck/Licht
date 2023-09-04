@@ -9,19 +9,23 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\Catalyst\Catalyst.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
         <ShaderDir Include="$(ProjectDir)\Shaders\**" />
         <ShaderFiles Include="$(ProjectDir)**\*.spv" />
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="@(ShaderFiles)">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
+        <None Update="@(ShaderFiles)">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="Assets\**\*">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Catalyst\Catalyst.csproj" />
+    </ItemGroup>
+
 
     <Target Name="CleanCompiledShaders" AfterTargets="Clean">
         <Message Text="Clean Compiled Shaders \n@(ShaderFiles)" />

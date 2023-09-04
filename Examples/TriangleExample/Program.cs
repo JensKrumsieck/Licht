@@ -1,46 +1,37 @@
-﻿using Catalyst.Engine;
-using Catalyst.Engine.Graphics;
+﻿using Catalyst;
+using Catalyst.Allocation;
+using Catalyst.Applications;
 using Catalyst.Pipeline;
-using ImGuiNET;
+using Silk.NET.Windowing;
 
-using var app = new Application();
-app.AttachLayer(new ExampleLayer());
+var builder = Application.CreateBuilder();
+builder.Services.AddWindowing(WindowOptions.DefaultVulkan);
+builder.Services.RegisterSingleton<IAllocator, PassthroughAllocator>();
+
+var app = builder.Build();
+app.UseVulkan(new GraphicsDeviceCreateOptions());
+app.AttachLayer<ExampleAppLayer>();
 app.Run();
 
-internal class ExampleLayer : ILayer
+internal class ExampleAppLayer : IAppLayer
 {
-    private float ANumber = 2f;
-
-    private GraphicsDevice _device = null!;
     private Renderer _renderer = null!;
     private ShaderEffect _shaderEffect;
     private ShaderPass _shaderPass;
     
     public void OnAttach()
     {
-        _device = Application.GetDevice();
-        _renderer = Application.GetRenderer();
-        _shaderEffect = ShaderEffect.BuildEffect(_device.Device, "./Shaders/triShader.vert.spv",
+        _renderer = Application.GetInstance().GetModule<Renderer>()!;
+        _shaderEffect = ShaderEffect.BuildEffect(_renderer.Device.VkDevice, "./Shaders/triShader.vert.spv",
             "./Shaders/triShader.frag.spv", null);
         var passInfo = ShaderPassInfo.Default();
-        _shaderPass = new ShaderPass(_device.Device, _shaderEffect, passInfo, default, _renderer.RenderPass);
+        _shaderPass = new ShaderPass(_renderer.Device.VkDevice, _shaderEffect, passInfo, default, _renderer.RenderPass);
     }
 
     public void OnUpdate(double deltaTime)
     {
         _renderer.CurrentCommandBuffer.BindGraphicsPipeline(_shaderPass);
         _renderer.CurrentCommandBuffer.Draw(3, 1, 0, 0);
-        _renderer.Window.Title = $"ImGui reports {ANumber}";
-    }
-    
-    public void OnDrawGui(double deltaTime)
-    {
-        ImGui.ShowDemoWindow();
-        ImGui.Begin("Test Window");
-        ImGui.Text("Hello World!");
-        ImGui.SliderFloat("Titlebar", ref ANumber, 0, 100);
-        ImGui.End();
-
     }
 
     public void OnDetach()

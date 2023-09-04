@@ -24,16 +24,16 @@ public unsafe struct Allocation : IDisposable
     }
 
     public Result Map(ulong size = Vk.WholeSize, ulong offset = 0) =>
-        vk.MapMemory(_allocator.Device, AllocatedMemory, offset, size, 0, ref PMappedData);
+        vk.MapMemory(_allocator.Device.VkDevice, AllocatedMemory, offset, size, 0, ref PMappedData);
 
     public void Unmap()
     {
         if(PMappedData is null) return;
-        vk.UnmapMemory(_allocator.Device, AllocatedMemory);
+        vk.UnmapMemory(_allocator.Device.VkDevice, AllocatedMemory);
         PMappedData = null;
     }
 
-    public void Dispose()
+    public readonly void Dispose()
     {
         if(PMappedData is null) Unmap();
         _allocator.Free(this);

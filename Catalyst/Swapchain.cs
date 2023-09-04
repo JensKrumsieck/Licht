@@ -8,7 +8,7 @@ namespace Catalyst;
 
 public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
 {
-    private readonly Device _device;
+    private readonly GraphicsDevice _device;
 
     public const int MaxImagesInFlight = 2;
     public readonly SwapchainKHR VkSwapchain;
@@ -39,15 +39,15 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
 
     private readonly KhrSwapchain _khrSwapchain;
 
-    public Swapchain(Device device, Surface surface, IAllocator allocator, Extent2D windowExtent,
+    public Swapchain(GraphicsDevice device, Extent2D windowExtent,
                      Swapchain? oldSwapchain = null)
     {
         _device = device;
         //create swapchain
-        var swapchainSupport = surface.GetSwapchainSupport(_device.PhysicalDevice);
+        var swapchainSupport = device.GetSwapchainSupport(_device.VkPhysicalDevice);
         var surfaceFormat = SelectFormat(swapchainSupport.Formats);
         var presentMode = PresentModeKHR.FifoKhr;
-        if (swapchainSupport.PresentModes.Contains(PresentModeKHR.MailboxKhr)) presentMode = PresentModeKHR.MailboxKhr;
+        if (swapchainSupport.PresentModes.Contains(PresentModeKHR.FifoRelaxedKhr)) presentMode = PresentModeKHR.FifoRelaxedKhr;
         var extent = ValidateExtent(windowExtent, swapchainSupport.Capabilities);
         var imageCount = swapchainSupport.Capabilities.MinImageCount + 1;
         if (swapchainSupport.Capabilities.MaxImageCount > 0 && imageCount > swapchainSupport.Capabilities.MaxImageCount)
@@ -55,7 +55,7 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
         var createInfo = new SwapchainCreateInfoKHR
         {
             SType = StructureType.SwapchainCreateInfoKhr,
-            Surface = surface,
+            Surface = _device.VkSurface,
             MinImageCount = imageCount,
             ImageFormat = surfaceFormat.Format,
             ImageColorSpace = surfaceFormat.ColorSpace,
@@ -72,15 +72,15 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
             OldSwapchain = oldSwapchain ?? default
         };
 
-        if (!vk.TryGetDeviceExtension(vk.CurrentInstance!.Value, _device, out _khrSwapchain))
+        if (!vk.TryGetDeviceExtension(vk.CurrentInstance!.Value, _device.VkDevice, out _khrSwapchain))
             throw new Exception($"Could not get device extension {KhrSwapchain.ExtensionName}");
-        _khrSwapchain.CreateSwapchain(_device, createInfo, null, out VkSwapchain);
+        _khrSwapchain.CreateSwapchain(_device.VkDevice, createInfo, null, out VkSwapchain);
 
         //get images
-        _khrSwapchain.GetSwapchainImages(_device, VkSwapchain, &imageCount, null);
+        _khrSwapchain.GetSwapchainImages(_device.VkDevice, VkSwapchain, &imageCount, null);
         _swapchainImages = new Image[imageCount];
         fixed (Image* pSwapchainImages = _swapchainImages)
-            _khrSwapchain.GetSwapchainImages(_device, VkSwapchain, &imageCount, pSwapchainImages);
+            _khrSwapchain.GetSwapchainImages(_device.VkDevice, VkSwapchain, &imageCount, pSwapchainImages);
 
         _imageImageFormat = surfaceFormat.Format;
         _extent = extent;
@@ -97,7 +97,7 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
         for (var i = 0; i < imageCount; i++)
         {
             viewInfo.Image = _swapchainImages[i];
-            vk.CreateImageView(_device, viewInfo, null, out var imageView).Validate();
+            vk.CreateImageView(_device.VkDevice, viewInfo, null, out var imageView).Validate();
             _swapchainImageViews[i] = imageView;
         }
 
@@ -132,10 +132,10 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
         };
         for (var i = 0; i < imageCount; i++)
         {
-            var image = _device.CreateImage(allocator, imageInfo, MemoryPropertyFlags.DeviceLocalBit);
+            var image = _device.CreateImage(imageInfo, MemoryPropertyFlags.DeviceLocalBit);
             _depthImages[i] = image;
             viewInfo.Image = image.Image;
-            vk.CreateImageView(_device, viewInfo, null, out var view).Validate();
+            vk.CreateImageView(_device.VkDevice, viewInfo, null, out var view).Validate();
             _depthImageViews[i] = view;
         }
 
@@ -150,9 +150,9 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
             {SType = StructureType.FenceCreateInfo, Flags = FenceCreateFlags.SignaledBit};
         for (var i = 0; i < MaxImagesInFlight; i++)
         {
-            vk.CreateSemaphore(_device, semaphoreInfo, null, out var availableSemaphore).Validate();
-            vk.CreateSemaphore(_device, semaphoreInfo, null, out var finishedSemaphore).Validate();
-            vk.CreateFence(_device, fenceInfo, null, out var fence).Validate();
+            vk.CreateSemaphore(_device.VkDevice, semaphoreInfo, null, out var availableSemaphore).Validate();
+            vk.CreateSemaphore(_device.VkDevice, semaphoreInfo, null, out var finishedSemaphore).Validate();
+            vk.CreateFence(_device.VkDevice, fenceInfo, null, out var fence).Validate();
             _imageAvailableSemaphores[i] = availableSemaphore;
             _renderFinishedSemaphores[i] = finishedSemaphore;
             _inFlightFences[i] = fence;
@@ -223,7 +223,7 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
             DependencyCount = 1,
             PDependencies = &dependency
         };
-        vk.CreateRenderPass(_device, renderPassInfo, null, out RenderPass).Validate();
+        vk.CreateRenderPass(_device.VkDevice, renderPassInfo, null, out RenderPass).Validate();
         
         //framebuffers
         Framebuffers = new Framebuffer[ImageCount];
@@ -244,14 +244,14 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
             Height = _extent.Height,
             Layers = 1
         };
-        vk.CreateFramebuffer(_device, createInfo, null, out var framebuffer).Validate();
+        vk.CreateFramebuffer(_device.VkDevice, createInfo, null, out var framebuffer).Validate();
         return framebuffer;
     }
 
     public Result AcquireNextImage(ref uint imageIndex)
     {
         _device.WaitForFence(_inFlightFences[_currentFrame]);
-        return _khrSwapchain.AcquireNextImage(_device,
+        return _khrSwapchain.AcquireNextImage(_device.VkDevice,
                                               VkSwapchain,
                                               ulong.MaxValue,
                                               _imageAvailableSemaphores[_currentFrame],
@@ -296,7 +296,7 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
             PSwapchains = &swapchain,
             PImageIndices = &imageIndex
         };
-        return _khrSwapchain.QueuePresent(_device.MainQueue, presentInfo);
+        return _khrSwapchain.QueuePresent(_device.VkMainDeviceQueue, presentInfo);
     }
     public (ImageView Color, ImageView Depth) GetAttachments(int index) =>
         (_swapchainImageViews[index], _depthImageViews[index]);
@@ -325,15 +325,15 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
 
     public void Dispose()
     {
-        vk.DestroyRenderPass(_device, RenderPass, null);
+        vk.DestroyRenderPass(_device.VkDevice, RenderPass, null);
         for (var i = 0; i < ImageCount; i++)
         {
-            vk.DestroyImageView(_device, _swapchainImageViews[i], null);
-            vk.DestroyImageView(_device, _depthImageViews[i], null);
-            vk.DestroyImage(_device, _depthImages[i].Image, null);
+            vk.DestroyImageView(_device.VkDevice, _swapchainImageViews[i], null);
+            vk.DestroyImageView(_device.VkDevice, _depthImageViews[i], null);
+            vk.DestroyImage(_device.VkDevice, _depthImages[i].Image, null);
             _depthImages[i].Allocation.Dispose();
-            vk.DestroyFence(_device, _imagesInFlight[i], null);
-            vk.DestroyFramebuffer(_device, Framebuffers[i], null);
+            vk.DestroyFence(_device.VkDevice, _imagesInFlight[i], null);
+            vk.DestroyFramebuffer(_device.VkDevice, Framebuffers[i], null);
         }
         Array.Clear(_depthImages);
         Array.Clear(_depthImageViews);
@@ -343,15 +343,15 @@ public unsafe struct Swapchain : IDisposable, IConvertibleTo<SwapchainKHR>
 
         for (var i = 0; i < MaxImagesInFlight; i++)
         {
-            vk.DestroyFence(_device, _inFlightFences[i], null);
-            vk.DestroySemaphore(_device, _imageAvailableSemaphores[i], null);
-            vk.DestroySemaphore(_device, _renderFinishedSemaphores[i], null);
+            vk.DestroyFence(_device.VkDevice, _inFlightFences[i], null);
+            vk.DestroySemaphore(_device.VkDevice, _imageAvailableSemaphores[i], null);
+            vk.DestroySemaphore(_device.VkDevice, _renderFinishedSemaphores[i], null);
         }
         Array.Clear(_inFlightFences);
         Array.Clear(_imageAvailableSemaphores);
         Array.Clear(_renderFinishedSemaphores);
         
-        _khrSwapchain.DestroySwapchain(_device, VkSwapchain, null);
+        _khrSwapchain.DestroySwapchain(_device.VkDevice, VkSwapchain, null);
         Array.Clear(_swapchainImages);
         _khrSwapchain.Dispose();
     }

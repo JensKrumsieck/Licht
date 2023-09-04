@@ -1,0 +1,35 @@
+#version 450
+
+layout (local_size_x = 16, local_size_y = 16) in;
+layout(binding = 0, rgba8) uniform readonly image2D inputImage;
+layout(binding = 1, rgba8) uniform writeonly image2D resultImage;
+
+layout(push_constant) uniform Settings {
+    int kernelSize;
+    float sigma;
+} blurSettings;
+
+float calculateGaussianWeight(int offset) {
+    return exp(-float(offset * offset) / (2.0 * blurSettings.sigma * blurSettings.sigma)) / (sqrt(2.0 * 3.14159265359) * blurSettings.sigma);
+}
+
+void main() {
+    ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 imageSize = imageSize(inputImage);
+
+    vec3 colorSum = vec3(0.0);
+    float weightSum = 0.0;
+
+    for (int i = -blurSettings.kernelSize; i <= blurSettings.kernelSize; i++) {
+        float weight = calculateGaussianWeight(i);
+        ivec2 offsetTexel = texel + ivec2(i, 0);
+        if (offsetTexel.x >= 0 && offsetTexel.x < imageSize.x) {
+            vec4 texelColor = imageLoad(inputImage, offsetTexel);
+            colorSum += texelColor.rgb * weight;
+            weightSum += weight;
+        }
+    }
+    vec3 blurredColor = colorSum / weightSum;
+
+    imageStore(resultImage, texel, vec4(blurredColor,1));
+}

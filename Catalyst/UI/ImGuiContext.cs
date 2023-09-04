@@ -2,7 +2,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Catalyst.Engine.Graphics;
+using Catalyst.Engine.UI;
 using Catalyst.Pipeline;
 using Catalyst.Tools;
 using ImGuiNET;
@@ -10,7 +10,7 @@ using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
 using Silk.NET.Vulkan;
 
-namespace Catalyst.Engine.UI;
+namespace Catalyst.UI;
 
 public unsafe class ImGuiContext : IDisposable
 {
@@ -46,12 +46,12 @@ public unsafe class ImGuiContext : IDisposable
         io.Fonts.AddFontDefault();
         
         io.Fonts.GetTexDataAsRGBA32(out nint pixels, out var width, out var height);
-        _descriptorPool = new DescriptorPool(_renderer.Device.Device, new[] {new DescriptorPoolSize(DescriptorType.CombinedImageSampler, 1000)}, 1000);
+        _descriptorPool = new DescriptorPool(_renderer.Device.VkDevice, new[] {new DescriptorPoolSize(DescriptorType.CombinedImageSampler, 1000)}, 1000);
         _fontTexture = new Texture(_renderer.Device, (uint) width, (uint) height, Format.R8G8B8A8Unorm, pixels.ToPointer());
         _descriptorSetLayout = DescriptorSetLayoutBuilder
                                .Start()
                                .WithSampler(0, DescriptorType.CombinedImageSampler, ShaderStageFlags.FragmentBit, _fontTexture.ImageInfo.Sampler)
-                               .CreateOn(_renderer.Device.Device);
+                               .CreateOn(_renderer.Device.VkDevice);
         _fontTexture.PrepareBind(_descriptorPool, _descriptorSetLayout);
         io.Fonts.SetTexID((nint)_fontTexture.Image.Handle);
         
@@ -61,7 +61,7 @@ public unsafe class ImGuiContext : IDisposable
             Offset = 0,
             Size = sizeof(float) * 4
         };
-        _shaderEffect = ShaderEffect.BuildEffect(_renderer.Device.Device, UIShaders.VertexShader, UIShaders.FragmentShader,
+        _shaderEffect = ShaderEffect.BuildEffect(_renderer.Device.VkDevice, UIShaders.VertexShader, UIShaders.FragmentShader,
                                                  new[] {_descriptorSetLayout}, pushRange);
         var vertexInfo = new VertexInfo(
                                         new VertexInputBindingDescription[]
@@ -77,7 +77,7 @@ public unsafe class ImGuiContext : IDisposable
         var passInfo = ShaderPassInfo.Default();
         passInfo.EnableAlphaBlend();
         passInfo.NoDepthTesting();
-        _shaderPass = new ShaderPass(_renderer.Device.Device, _shaderEffect, passInfo, vertexInfo, _renderer.RenderPass);
+        _shaderPass = new ShaderPass(_renderer.Device.VkDevice, _shaderEffect, passInfo, vertexInfo, _renderer.RenderPass);
 
         SetKeyMappings();
         SetFrameData();

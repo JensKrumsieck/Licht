@@ -1,39 +1,35 @@
 ﻿using System.Numerics;
-using Catalyst.Engine.Graphics;
+using Catalyst.Applications;
 using ImGuiNET;
 using Silk.NET.Input;
 
-namespace Catalyst.Engine.UI;
+namespace Catalyst.UI;
 
-public class ImGuiLayer : ILayer
+public class ImGuiRenderer : IAppModule
 {
-    private ImGuiContext? _guiContext;
-    private Renderer? _renderer;
-    private IInputContext? _input;
+    private readonly ImGuiContext _guiContext;
+    private readonly Renderer _renderer;
+    private readonly IInputContext _input;
     
     private bool _frameBegun;
-    
-    public void OnAttach()
+    public ImGuiRenderer( Renderer renderer, IInputContext input)
     {
-        _renderer = Application.GetRenderer();
-        _input = Application.GetInput();
+        _renderer = renderer;
+        _input = input;
         _guiContext = new ImGuiContext(_renderer, _input);
         
         var io = ImGui.GetIO();
         io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
-        // io.ConfigFlags |= ImGuiConfigFlags.ViewportsEnable;
-        // io.BackendFlags |= ImGuiBackendFlags.PlatformHasViewports;
-        // io.BackendFlags |= ImGuiBackendFlags.RendererHasViewports;
         io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
         
         ImGui.StyleColorsDark();
     }
-
-    public void OnDetach() => _guiContext?.Dispose();
-
-    public void OnUpdate(double deltaTime) => _guiContext?.Update((float)deltaTime);
-
+    
+    public void Dispose() => _guiContext.Dispose();
+    
+    public void OnUpdate(double deltaTime)=> _guiContext.Update((float)deltaTime);
+    
     public void Begin()
     {
         ImGui.NewFrame();
@@ -59,7 +55,7 @@ public class ImGuiLayer : ILayer
             ImGui.RenderPlatformWindowsDefault();
         }
     }
-
-    public void LoadTexture(Texture t) => _guiContext?.AddTexture(t);
-    public void UnloadTexture(Texture t) => _guiContext?.RemoveTexture(t);
+        
+    public void LoadTexture(Texture t) => _guiContext.AddTexture(t);
+    public void UnloadTexture(Texture t) => _guiContext.RemoveTexture(t);
 }

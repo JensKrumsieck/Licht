@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace Catalyst.Engine.Core;
+namespace Catalyst;
 
 public static class Random
 {

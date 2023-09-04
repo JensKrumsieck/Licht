@@ -1,6 +1,6 @@
-﻿namespace Catalyst.Engine;
+﻿namespace Catalyst.Applications;
 
-public interface ILayer
+public interface IAppLayer
 {
     void OnAttach(){}
     void OnDetach(){}

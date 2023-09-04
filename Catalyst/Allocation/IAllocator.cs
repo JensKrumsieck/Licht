@@ -2,9 +2,10 @@
 
 namespace Catalyst.Allocation;
 
-public unsafe interface IAllocator : IDisposable
+public interface IAllocator : IDisposable
 {
-    public Device Device { get; }
+    public GraphicsDevice Device { get; }
+    public void Bind(GraphicsDevice device); 
 
     void Allocate(AllocationCreateInfo createInfo, out Allocation alloc);
     void Free(Allocation alloc);
@@ -14,7 +15,7 @@ public unsafe interface IAllocator : IDisposable
 
     public uint FindMemoryType(uint filter, MemoryPropertyFlags flags)
     {
-        vk.GetPhysicalDeviceMemoryProperties(Device.PhysicalDevice, out var properties);
+        vk.GetPhysicalDeviceMemoryProperties(Device.VkPhysicalDevice, out var properties);
         for (var i = 0; i < properties.MemoryTypeCount; i++)
         {
             if ((filter & (uint)(1 << i)) != 0u && (properties.MemoryTypes[i].PropertyFlags & flags) == flags)

@@ -10,22 +10,21 @@ public sealed unsafe class PassthroughAllocator : IAllocator
     {
         public ulong* MemoryTypeAllocSizes;
         public uint TotalAllocations;
-        public Device Context;
+        public GraphicsDevice Context;
     }
 
     private AllocatorState _state;
+    public GraphicsDevice Device => _state.Context;
     
-    public Device Device => _state.Context;
-
-    public PassthroughAllocator(Device device)
+    public void Bind(GraphicsDevice device)
     {
         _state.Context = device;
-        vk.GetPhysicalDeviceMemoryProperties(device.PhysicalDevice, out var memoryProperties);
+        vk.GetPhysicalDeviceMemoryProperties(device.VkPhysicalDevice, out var memoryProperties);
         _state.MemoryTypeAllocSizes = (ulong*) Marshal.AllocHGlobal((nint) (sizeof(uint) * memoryProperties.MemoryTypeCount));
     }
 
     private void Deactivate() => Marshal.FreeHGlobal((nint) _state.MemoryTypeAllocSizes);
-    
+
     public void Allocate(AllocationCreateInfo createInfo, out Allocation alloc)
     {
         _state.TotalAllocations++;
@@ -36,7 +35,7 @@ public sealed unsafe class PassthroughAllocator : IAllocator
             AllocationSize = createInfo.Size,
             MemoryTypeIndex = createInfo.MemoryTypeIndex
         };
-        vk.AllocateMemory(_state.Context, allocInfo, null, out var allocatedMemory).Validate();
+        vk.AllocateMemory(_state.Context.VkDevice, allocInfo, null, out var allocatedMemory).Validate();
         alloc = new Allocation(this, allocatedMemory, createInfo.MemoryTypeIndex, 0, createInfo.Size, 0);
     }
 
@@ -44,7 +43,7 @@ public sealed unsafe class PassthroughAllocator : IAllocator
     {
         _state.TotalAllocations--;
         _state.MemoryTypeAllocSizes[alloc.Type] -= alloc.Size;
-        vk.FreeMemory(_state.Context, alloc.AllocatedMemory, null);
+        vk.FreeMemory(_state.Context.VkDevice, alloc.AllocatedMemory, null);
     }
 
     public ulong AllocatedSize(uint memoryType) => _state.MemoryTypeAllocSizes[memoryType];

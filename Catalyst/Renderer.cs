@@ -1,10 +1,11 @@
-﻿using Catalyst.Tools;
+﻿using Catalyst.Applications;
+using Catalyst.Tools;
 using Silk.NET.Vulkan;
 using Silk.NET.Windowing;
 
-namespace Catalyst.Engine.Graphics;
+namespace Catalyst;
 
-public sealed class Renderer : IDisposable
+public class Renderer : IAppModule
 {
     private Swapchain _swapchain;
     public readonly IWindow Window;
@@ -44,11 +45,11 @@ public sealed class Renderer : IDisposable
         }
         Device.WaitIdle();
         
-        if(_swapchain.VkSwapchain.Handle == 0) _swapchain = new Swapchain(Device.Device, Device.Surface, Device.Allocator, extent);
+        if(_swapchain.VkSwapchain.Handle == 0) _swapchain = new Swapchain(Device, extent);
         else
         {
             var oldSwapchain = _swapchain;
-            _swapchain = new Swapchain(Device.Device, Device.Surface, Device.Allocator, extent, oldSwapchain);
+            _swapchain = new Swapchain(Device, extent, oldSwapchain);
             //TODO: Compare Formats
             oldSwapchain.Dispose();
         }
