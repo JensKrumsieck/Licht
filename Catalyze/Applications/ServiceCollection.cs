@@ -28,5 +28,5 @@ public class ServiceCollection
         RegisterSingleton(input);
     }
     
-    public ReadOnlyDictionary<Type, ServiceDescriptor> Build() => new(_serviceTypes);
+    public ReadOnlyDictionary<Type, ServiceDescriptor> Build() => _serviceTypes.AsReadOnly();
 }

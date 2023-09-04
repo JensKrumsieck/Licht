@@ -40,8 +40,6 @@ namespace ComputeShader
     public unsafe class ComputeShaderAppLayer : IAppLayer
     {
         private Renderer _renderer = null!;
-        private ShaderEffect _shaderEffect;
-        private ShaderPass _shaderPass;
 
         public BlurSettings BlurSettings = new();
     
@@ -116,8 +114,6 @@ namespace ComputeShader
             _descriptorSetLayout.Dispose();
             _postProcessEffect.Dispose();
             _postProcessPass.Dispose();
-            _shaderEffect.Dispose();
-            _shaderPass.Dispose();
         }
     }
 }
