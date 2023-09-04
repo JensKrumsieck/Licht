@@ -1,4 +1,7 @@
 ﻿# Catalyze
+[![NuGet Badge](https://buildstats.info/nuget/Catalyze?includePreReleases=true)](https://www.nuget.org/packages/Catalyze/0.1.0-alpha.1)
+
+
 A thin but opinionated abstraction layer to write Vulkan Code in C# (using Silk.NET) with fewer boilerplate code.
 (work in progress, see Examples folder for some examples)
 
