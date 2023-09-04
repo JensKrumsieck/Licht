@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\Catalyst\Catalyst.csproj" />
+      <ProjectReference Include="..\..\Catalyze\Catalyze.csproj" />
     </ItemGroup>
 
 </Project>

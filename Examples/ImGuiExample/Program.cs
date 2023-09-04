@@ -1,6 +1,7 @@
-﻿using Catalyst;
-using Catalyst.Allocation;
-using Catalyst.Applications;
+﻿using Catalyze;
+using Catalyze.Allocation;
+using Catalyze.Applications;
+using ImGuiExample;
 using ImGuiNET;
 using Silk.NET.Windowing;
 
@@ -15,10 +16,13 @@ app.UseVulkan(new GraphicsDeviceCreateOptions())
 app.AttachLayer<ImGuiAppLayer>();
 app.Run();
 
-public class ImGuiAppLayer : IAppLayer
+namespace ImGuiExample
 {
-    public void OnDrawGui(double deltaTime)
+    public class ImGuiAppLayer : IAppLayer
     {
-        ImGui.ShowDemoWindow();
+        public void OnDrawGui(double deltaTime)
+        {
+            ImGui.ShowDemoWindow();
+        }
     }
 }
