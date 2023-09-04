@@ -110,6 +110,8 @@ namespace ComputeShader
 
         public void OnDetach()
         {
+            OutputTexture.Dispose();
+            _texture.Dispose();
             _descriptorPool.Dispose();
             _descriptorSetLayout.Dispose();
             _postProcessEffect.Dispose();
