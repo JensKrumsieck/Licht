@@ -10,6 +10,7 @@
         <PackageProjectUrl>https://github.com/JensKrumsieck/Catalyst</PackageProjectUrl>
         <RepositoryUrl>https://github.com/JensKrumsieck/Catalyst</RepositoryUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryType>git</RepositoryType>
         <PackageTags>3D, Vulkan, Silk.NET, ImGui, Engine</PackageTags>
         
