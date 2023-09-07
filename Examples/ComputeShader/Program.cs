@@ -109,7 +109,8 @@ namespace ComputeShader
         }
 
         public void OnDetach()
-        {
+        { 
+            Application.GetInstance().GetModule<ImGuiRenderer>()!.UnloadTexture(OutputTexture);
             OutputTexture.Dispose();
             _texture.Dispose();
             _descriptorPool.Dispose();
