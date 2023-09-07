@@ -21,7 +21,7 @@ public static class Random
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Float(ref uint seed, int min, int max)
+    public static float Float(ref uint seed, float min, float max)
     {
         var f = Float(ref seed);
         return f * (max - min) + min;
