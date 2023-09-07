@@ -5,7 +5,7 @@ using Silk.NET.Input;
 
 namespace Catalyze.UI;
 
-public class ImGuiRenderer : IAppModule
+public sealed class ImGuiRenderer : IAppModule
 {
     private readonly ImGuiContext _guiContext;
     private readonly Renderer _renderer;
@@ -47,7 +47,7 @@ public class ImGuiRenderer : IAppModule
             io.DisplayFramebufferScale = new Vector2(_renderer.Window.FramebufferSize.X / (float) _renderer.Window.Size.X,
                 _renderer.Window.FramebufferSize.Y / (float) _renderer.Window.Size.Y);
         
-        _guiContext?.Render(_renderer.CurrentCommandBuffer);
+        _guiContext.Render(_renderer.CurrentCommandBuffer);
 
         if (io.ConfigFlags.HasFlag(ImGuiConfigFlags.ViewportsEnable))
         {

@@ -2,7 +2,6 @@
 using Catalyze.Pipeline;
 using Catalyze.Tools;
 using Silk.NET.Vulkan;
-using SkiaSharp;
 
 namespace Catalyze;
 
@@ -42,12 +41,7 @@ public unsafe class Texture : IDisposable
     public Texture(GraphicsDevice device, string filename, ImageLayout desiredLayout, Format imageFormat = Format.R8G8B8A8Unorm, ImageUsageFlags flags = ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit)
     {
         _device = device;
-        using var fs = File.Open(filename, FileMode.Open);
-        using var codec = SKCodec.Create(fs);
-        //TODO: use image Format and convert between vk and sk
-        var imgInfo = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
-        var image = SKBitmap.Decode(codec, imgInfo);
-        if (image is null) throw new IOException($"Failed to load image from {filename}");
+        var image = FileTool.LoadImageFromFile(filename, imageFormat.ToSkFormat());
         var pixels = image.GetPixels();
         Width = (uint) image.Width;
         Height = (uint) image.Height;

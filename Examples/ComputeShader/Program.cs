@@ -71,7 +71,7 @@ namespace ComputeShader
             _texture = new Texture(_renderer.Device, "./Assets/atomium.jpg", ImageLayout.General, Format.R8G8B8A8Unorm, ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.StorageBit);
             OutputTexture = new Texture(_renderer.Device, _texture.Width, _texture.Height, Format.R8G8B8A8Unorm, ImageLayout.General, ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.StorageBit);
         
-            _renderer.Device.TransitionImageLayout(OutputTexture!.Image, OutputTexture.ImageFormat, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 1, 1);
+            _renderer.Device.TransitionImageLayout(OutputTexture.Image, OutputTexture.ImageFormat, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 1, 1);
             _renderer.Device.TransitionImageLayout(OutputTexture.Image, OutputTexture.ImageFormat, ImageLayout.TransferDstOptimal, ImageLayout.General, 1, 1);
             _descriptorPool.UpdateDescriptorSetImage(ref _descriptorSet, _texture.ImageInfo, DescriptorType.StorageImage);
             _descriptorPool.UpdateDescriptorSetImage(ref _descriptorSet, OutputTexture.ImageInfo, DescriptorType.StorageImage, 1);

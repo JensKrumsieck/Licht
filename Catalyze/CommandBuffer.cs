@@ -72,5 +72,5 @@ public unsafe struct CommandBuffer : IConvertibleTo<Silk.NET.Vulkan.CommandBuffe
     public void DrawIndexed(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance) =>
         vk.CmdDrawIndexed(this, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     public void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ = 1) =>
-        vk.CmdDispatch(VkCommandBuffer, groupCountX, (uint) groupCountY, (uint) groupCountZ);
+        vk.CmdDispatch(VkCommandBuffer, groupCountX, groupCountY, groupCountZ);
 }

@@ -124,7 +124,7 @@ public unsafe class ImGuiContext : IDisposable
     private void OnKeyChar(IKeyboard kb, char @char) => _pressedChars.Add(@char);
 
     private void SetFrameData(float deltaTime = 1f/60f)
-    {;
+    {
         var io = ImGui.GetIO();
         io.DisplaySize = new Vector2(_renderer.Window.Size.X, _renderer.Window.Size.Y);
         if (_renderer.Window.Size is {X: > 0, Y: > 0})

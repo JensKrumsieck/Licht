@@ -1,3 +1,3 @@
 ﻿namespace Catalyze.Applications;
 
-public interface IAppModule : IDisposable { }
+public interface IAppModule : IDisposable;

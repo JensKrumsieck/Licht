@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Silk.NET.Vulkan;
+using SkiaSharp;
 
 namespace Catalyze.Tools;
 
@@ -54,5 +55,35 @@ public static class FormatTools
         Format.R32G32B32A32Sint => 16,
         Format.R32G32B32A32Sfloat => 16,
         _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Format currently unsupported!")
+    };
+
+    public static Format ToVkFormat(this SKColorType colorType, bool preferSrgb = true) => colorType switch
+    {
+        SKColorType.Unknown => Format.Undefined,
+        SKColorType.Rgb565 => Format.R5G6B5UnormPack16,
+        SKColorType.Argb4444 => Format.A4R4G4B4UnormPack16,
+        SKColorType.Rgba8888 => preferSrgb ? Format.R8G8B8A8Srgb : Format.R8G8B8A8Unorm,
+        SKColorType.Bgra8888 => preferSrgb ? Format.B8G8R8A8Srgb : Format.B8G8R8A8Unorm,
+        SKColorType.RgbaF16 => Format.R16G16B16A16Sfloat,
+        SKColorType.RgbaF32 => Format.R32G32B32A32Uint,
+        SKColorType.Rgba16161616 => Format.R16G16B16A16Unorm,
+        _ => throw new ArgumentOutOfRangeException(nameof(colorType), colorType,
+            "This conversion from SkColorType to VkFormat is not (yet) supported!")
+    };
+    
+    public static SKColorType ToSkFormat(this Format format) => format switch
+    {
+        Format.Undefined => SKColorType.Unknown,
+        Format.R5G6B5UnormPack16 => SKColorType.Rgb565,
+        Format.A4R4G4B4UnormPack16 => SKColorType.Argb4444,
+        Format.R8G8B8A8Srgb => SKColorType.Rgba8888,
+        Format.R8G8B8A8Unorm => SKColorType.Rgba8888,
+        Format.B8G8R8A8Srgb => SKColorType.Bgra8888,
+        Format.B8G8R8A8Unorm => SKColorType.Bgra8888,
+        Format.R16G16B16A16Sfloat => SKColorType.RgbaF16,
+        Format.R32G32B32A32Uint => SKColorType.RgbaF32,
+        Format.R16G16B16A16Unorm => SKColorType.Rgba16161616,
+        _ => throw new ArgumentOutOfRangeException(nameof(format), format,
+            "This conversion from VkFormat to SkColorType is not (yet) supported!")
     };
 }
