@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <PackageId>Catalyze</PackageId>
-        <Version>0.1.0-alpha.3</Version>
+        <Version>0.1.0-alpha.4</Version>
         
         <Description>Vulkan &amp; ImGui Apps in C# using Silk.NET and ImGui.NET</Description>
         <Authors>Jens Krumsieck</Authors>

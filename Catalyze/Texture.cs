@@ -23,6 +23,7 @@ public unsafe class Texture : IDisposable
     private readonly ImageUsageFlags _imageUsage;
 
     public Image Image => _allocatedImage.Image;
+    public Allocation.Allocation Allocation => _allocatedImage.Allocation;
     public DescriptorSet DescriptorSet => _descriptorSet;
 
     public Texture(GraphicsDevice device, uint width, uint height, Format imageFormat, ImageLayout desiredLayout, ImageUsageFlags flags = ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit, void* data = null)
