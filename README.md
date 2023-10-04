@@ -1,4 +1,4 @@
-﻿# Catalyze
+﻿# Catalyze [WIP/Concept Stage]
 [![NuGet Badge](https://buildstats.info/nuget/Catalyze?includePreReleases=true)](https://www.nuget.org/packages/Catalyze/0.1.0-alpha.1)
 
 
