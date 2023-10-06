@@ -5,12 +5,14 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
-    
+
+    <ItemGroup>
+      <PackageReference Include="Silk.NET.Vulkan" Version="2.17.1" />
+      <PackageReference Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.17.1" />
+    </ItemGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\Licht.Core\Licht.Core.csproj" />
     </ItemGroup>
-    
-    <ItemGroup>
-      <PackageReference Include="Silk.NET.Windowing" Version="2.17.1" />
-    </ItemGroup>
+
 </Project>

@@ -1,0 +1,6 @@
+﻿<Project>
+    <PropertyGroup>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <DefineConstants>$(DefineConstants);LWARN;LINFO;LVERBOSE;LTRACE;LGRAPHICSDEBUG</DefineConstants>
+    </PropertyGroup>    
+</Project>

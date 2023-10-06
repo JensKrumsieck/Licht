@@ -5,11 +5,10 @@ using System.Runtime.CompilerServices;
 namespace Licht.Core;
 public class Logger : ILogger
 {
-
     [StackTraceHidden]
     public void LogOutput(LogLevel level, string message, params object[]? args)
     {
-        var logMessage = args is null ? message : string.Format(message, args);
+        var logMessage = args is null || args.Length == 0 ? message : string.Format(message, args);
         var levelStr = $"[{level}]:";
 
         var defaultColor = Console.ForegroundColor;
