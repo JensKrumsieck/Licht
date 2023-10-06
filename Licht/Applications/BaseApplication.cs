@@ -7,7 +7,7 @@ namespace Licht.Applications;
 public abstract class BaseApplication : IApplication
 {
     protected readonly ILogger Logger;
-    protected readonly ReadOnlyDictionary<Type, ServiceDescriptor> _services;
+    private readonly ReadOnlyDictionary<Type, ServiceDescriptor> _services;
     
     protected BaseApplication(ReadOnlyDictionary<Type, ServiceDescriptor> services, ApplicationSpecification config)
     {
