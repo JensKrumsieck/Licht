@@ -1,17 +1,15 @@
-﻿global using static Licht.Vulkan.VkContext;
-using System.Runtime.CompilerServices;
+﻿global using static Licht.Vulkan.VulkanDevice;
+
 using System.Runtime.InteropServices;
 using Licht.Core;
 using Licht.Vulkan.Extensions;
+using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.EXT;
 
 namespace Licht.Vulkan;
 
-/// <summary>
-/// Vulkan api context constructed from API Object, Instance,  Device
-/// </summary>
-public unsafe class VkContext : IDisposable
+public unsafe class VulkanDevice : IDisposable
 {
     // ReSharper disable InconsistentNaming
     public static readonly Vk vk = Vk.GetApi();
@@ -22,17 +20,17 @@ public unsafe class VkContext : IDisposable
     
     private readonly Instance _instance;
     private readonly DebugUtilsMessengerEXT _debugMessenger;
-    private PhysicalDevice _physicalDevice;
-    private Device _device;
+    private readonly PhysicalDevice _physicalDevice;
+    private readonly Device _device;
     private Queue _mainQueue;
-    private uint _mainQueueIndex;
+    private readonly uint _mainQueueIndex;
     private CommandPool _commandPool;
     
     private readonly ExtDebugUtils _debugUtils;
     
     public static void InitializeLogging(ILogger logger) => Logger = logger;
     
-    public VkContext()
+    public VulkanDevice()
     {
         //TODO: create context based on project settings files
         var enabledInstanceExtensions = new List<string>();
@@ -79,12 +77,12 @@ public unsafe class VkContext : IDisposable
 #endif
         };
         vk.CreateInstance(instanceInfo, null, out _instance).Validate();
-        Logger?.Verbose("Enabled Layers: {0}", string.Join(", ", enabledLayers));
-        Logger?.Verbose("Enabled Instance Extensions: {0}", string.Join(", ", enabledInstanceExtensions));
+        Logger?.LogDebug("Enabled Layers: {Layers}", string.Join(", ", enabledLayers));
+        Logger?.LogDebug("Enabled Instance Extensions: {InstanceExtensions}", string.Join(", ", enabledInstanceExtensions));
         
 #if LGRAPHICSDEBUG
         if(!vk.TryGetInstanceExtension(_instance, out _debugUtils))
-            Logger?.Error($"Could not get instance extensions {ExtDebugUtils.ExtensionName}!");
+            Logger?.LogError($"Could not get instance extension {ExtDebugUtils.ExtensionName}!");
         _debugUtils.CreateDebugUtilsMessenger(_instance, debugInfo, null, out _debugMessenger).Validate();
 #endif
 
@@ -96,7 +94,7 @@ public unsafe class VkContext : IDisposable
         });
         if (_physicalDevice.Handle == 0) _physicalDevice = devices.First();
         vk.GetPhysicalDeviceProperties(_physicalDevice, out var properties);
-        Logger?.Verbose(new ByteString(properties.DeviceName));
+        Logger?.LogDebug("{DeviceName}", new ByteString(properties.DeviceName));
 
         var enabledDeviceExtensions = new List<string>();
         if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) 
@@ -106,7 +104,7 @@ public unsafe class VkContext : IDisposable
         var defaultPriority = 1.0f;
         var queueFamilyCount = 0u;
         vk.GetPhysicalDeviceQueueFamilyProperties(_physicalDevice, ref queueFamilyCount, null);
-        Logger?.Trace($"Found {queueFamilyCount} device queues");
+        Logger?.LogTrace("Found {QueueFamilyCount} device queues", queueFamilyCount);
         var queueFamilies = new QueueFamilyProperties[queueFamilyCount];
         fixed (QueueFamilyProperties* pQueueFamilies = queueFamilies)
             vk.GetPhysicalDeviceQueueFamilyProperties(_physicalDevice, ref queueFamilyCount, pQueueFamilies);
@@ -140,7 +138,7 @@ public unsafe class VkContext : IDisposable
             PQueueCreateInfos = &queueInfo
         };
         vk.CreateDevice(_physicalDevice, deviceInfo, null, out _device).Validate();
-        Logger?.Verbose("Enabled Device Extensions: {0}", string.Join(", ", enabledDeviceExtensions));
+        Logger?.LogDebug("Enabled Device Extensions: {DeviceExtensions}", string.Join(", ", enabledDeviceExtensions));
         vk.GetDeviceQueue(_device, _mainQueueIndex, 0, out _mainQueue);
 
         var poolInfo = new CommandPoolCreateInfo

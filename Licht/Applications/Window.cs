@@ -1,4 +1,5 @@
 ﻿using Licht.Core;
+using Microsoft.Extensions.Logging;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
@@ -8,7 +9,7 @@ public sealed class Window : IDisposable
 {
     private readonly IWindow _view;
     private readonly ILogger _logger;
-    
+
     public uint Width { get; private set; }
     public uint Height { get; private set; }
 
@@ -16,6 +17,11 @@ public sealed class Window : IDisposable
     {
         add => _view.Update += value;
         remove => _view.Update -= value;
+    }
+    public event Action<double>? Render
+    {
+        add => _view.Render += value;
+        remove => _view.Render -= value;
     }
 
     public Window(ILogger logger, string name, int width, int height, bool fullscreen)
@@ -28,11 +34,11 @@ public sealed class Window : IDisposable
             WindowState = fullscreen ? WindowState.Fullscreen : WindowState.Normal
         };
         _view = Silk.NET.Windowing.Window.Create(opt);
-        _logger.Trace("Window created");
+        _logger.LogTrace("Window created");
         Width = (uint) width;
         Height = (uint) height;
         _view.Initialize();
-        _logger.Trace("Window initialized");
+        _logger.LogTrace("Window initialized");
         _view.Resize += OnResize;
     }
     
@@ -40,12 +46,12 @@ public sealed class Window : IDisposable
     {
         Width = (uint) newSize.X;
         Height = (uint) newSize.Y;
-        _logger.Trace($"Window resized to {newSize}");
+        _logger.LogTrace($"Window resized to {newSize}");
     }
 
     public void Run()
     {
-        _logger.Trace("Start Window Loop");
+        _logger.LogTrace("Start Window Loop");
         while (!_view.IsClosing)
         {
             _view.DoEvents();
@@ -57,8 +63,8 @@ public sealed class Window : IDisposable
         }
         _view.DoRender();
         _view.Reset();
-        _logger.Trace("End Window Loop");
+        _logger.LogTrace("End Window Loop");
     }
+    
     public void Dispose() => _view.Dispose();
-  
 }

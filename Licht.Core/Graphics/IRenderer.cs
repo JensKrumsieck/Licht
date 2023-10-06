@@ -1,4 +1,4 @@
-﻿namespace Licht.Graphics;
+﻿namespace Licht.Core.Graphics;
 
 public interface IRenderer
 {

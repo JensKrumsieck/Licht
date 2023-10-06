@@ -1,18 +1,19 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Licht.Core;
+using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;
 
 namespace Licht.Vulkan.Extensions;
 
 public static unsafe class DebugExtensions
 {
-    public static LogLevel GetLogLevel(this DebugUtilsMessageSeverityFlagsEXT severityFlagsExt) => severityFlagsExt switch
+    private static LogLevel GetLogLevel(this DebugUtilsMessageSeverityFlagsEXT severityFlagsExt) => severityFlagsExt switch
     {
         DebugUtilsMessageSeverityFlagsEXT.None => LogLevel.Trace,
-        DebugUtilsMessageSeverityFlagsEXT.VerboseBitExt => LogLevel.Verbose,
-        DebugUtilsMessageSeverityFlagsEXT.InfoBitExt => LogLevel.Info,
-        DebugUtilsMessageSeverityFlagsEXT.WarningBitExt => LogLevel.Warn,
+        DebugUtilsMessageSeverityFlagsEXT.VerboseBitExt => LogLevel.Debug,
+        DebugUtilsMessageSeverityFlagsEXT.InfoBitExt => LogLevel.Information,
+        DebugUtilsMessageSeverityFlagsEXT.WarningBitExt => LogLevel.Warning,
         DebugUtilsMessageSeverityFlagsEXT.ErrorBitExt => LogLevel.Error,
         _ => LogLevel.Trace
     };
@@ -20,14 +21,12 @@ public static unsafe class DebugExtensions
     [StackTraceHidden]
     public static void Validate(this Result result, [CallerArgumentExpression(nameof(result))] string operation = "")
     {
-        if (result == Result.Success) VkContext.Logger?.Trace($"{operation} reported {result}!");
-        else if ((int) result < 0)
+        if ((int) result < 0)
         {
             var msg = $"{operation} failed: {result}";
-            VkContext.Logger?.Error(msg);
-            throw new ApplicationException(msg);
+            VulkanDevice.Logger?.LogError(new ApplicationException(msg), msg);
         }
-        else VkContext.Logger?.Info($"{operation} reported {result}!");
+        VulkanDevice.Logger?.LogDebug("{Operation} reported {Result}!", operation, result);
     }
     
     [StackTraceHidden]
@@ -37,8 +36,7 @@ public static unsafe class DebugExtensions
         void* userData)
     {
         var message = new ByteString(pCallbackData->PMessage);
-        var logMessage = $"{messageTypeFlags}: {message}";
-        VkContext.Logger?.LogOutput(severityFlags.GetLogLevel(), logMessage);
+        VulkanDevice.Logger?.Log(severityFlags.GetLogLevel(), "{MessageTypeFlags}: {Message}", messageTypeFlags, message);
         return Vk.False;
     }
 }

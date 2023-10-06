@@ -1,91 +1,54 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 
 namespace Licht.Core;
-public class Logger : ILogger
+public class Logger : Microsoft.Extensions.Logging.ILogger
 {
     [StackTraceHidden]
-    public void LogOutput(LogLevel level, string message, params object[]? args)
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
+        Exception? exception, Func<TState, Exception?, string> formatter)
     {
-        var logMessage = args is null || args.Length == 0 ? message : string.Format(message, args);
-        var levelStr = $"[{level}]:";
-
+        if (!IsEnabled(logLevel)) return;
+        if(state == null && exception == null) return;
+        ArgumentNullException.ThrowIfNull(formatter);
+        
         var defaultColor = Console.ForegroundColor;
-        Console.ForegroundColor = level switch
+        Console.ForegroundColor = logLevel switch
         {
-            LogLevel.Fatal => ConsoleColor.DarkRed,
-            LogLevel.Error => ConsoleColor.Red,
-            LogLevel.Warn => ConsoleColor.Yellow,
-            LogLevel.Info => ConsoleColor.Green,
-            LogLevel.Verbose => ConsoleColor.Blue,
             LogLevel.Trace => ConsoleColor.DarkGray,
-            _ => defaultColor
+            LogLevel.Debug => ConsoleColor.Blue,
+            LogLevel.Information => ConsoleColor.Green,
+            LogLevel.Warning => ConsoleColor.Yellow,
+            LogLevel.Error => ConsoleColor.Red,
+            LogLevel.Critical => ConsoleColor.DarkRed,
+            _ => ConsoleColor.White
         };
 
-        var outString = $"{levelStr} {logMessage}";
-        if (level < (LogLevel) 2)
-        {
-            Console.Error.WriteLine(outString);
-#if !DEBUG
-            Environment.Exit(-1);
-#endif
-            throw new ApplicationException($"Application shuts down due this error:\n{logMessage}");
-        }
+        var message = formatter(state, exception);
+        if (string.IsNullOrWhiteSpace(message)) message = string.Empty;
 
-        Console.WriteLine(outString);
-
+        var text = exception?.Message ?? message;
+        Console.WriteLine(text);
         Console.ForegroundColor = defaultColor;
     }
-
-    [StackTraceHidden]
-    public void Fatal(string message, params object[]? args) => LogOutput(LogLevel.Fatal, message, args);
-    
-    [StackTraceHidden]
-    public void Error(string message, params object[]? args) => LogOutput(LogLevel.Error, message, args);
-    
-    [StackTraceHidden]
-    public void Warn(string message, params object[]? args)
+    public bool IsEnabled(LogLevel logLevel)
     {
+        if (logLevel == LogLevel.Critical || logLevel == LogLevel.Error) return true;
 #if LWARN
-        LogOutput(LogLevel.Warn, message, args);
+        if (logLevel == LogLevel.Warning) return true;
 #endif
-    }
-    
-    [StackTraceHidden]
-    public void Info(string message, params object[]? args)
-    {
 #if LINFO
-        LogOutput(LogLevel.Info, message, args);
+        if (logLevel == LogLevel.Information) return true;
 #endif
-    }
-    
-    [StackTraceHidden]
-    public void Verbose(string message, params object[]? args)
-    {
-#if DEBUG && LVERBOSE
-        LogOutput(LogLevel.Verbose, message, args);
-#endif
-    }
-    
-    [StackTraceHidden]
-    public void Trace(string message, params object[]? args)
-    {
-#if DEBUG && LTRACE
-        LogOutput(LogLevel.Trace, message, args);
-#endif
-    }
-    
-    [StackTraceHidden]
-    public void Assert([DoesNotReturnIf(true)] bool expr, [CallerArgumentExpression(nameof(expr))] string message = "", [CallerFilePath] string file = "",
-        [CallerLineNumber] int line = 0)
-    {
 #if DEBUG
-        if (!expr)
-        {
-            if (message != "") message = " \"" + message + "\" ";
-            Fatal($"Assertion{message}failed in file: {file} at line {line}");
-        }
+#if LTRACE
+        if (logLevel == LogLevel.Trace) return true;
 #endif
+#if LVERBOSE
+        if (logLevel == LogLevel.Debug) return true;
+#endif
+#endif
+        return false;
     }
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
 }

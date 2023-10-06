@@ -1,22 +1,24 @@
 ﻿using Licht.Core;
-using Licht.Graphics;
+using Licht.Core.Graphics;
+using Microsoft.Extensions.Logging;
 
 namespace Licht.Vulkan;
 
 public class VulkanRenderer : IRenderer
 {
+    private VulkanDevice _context;
     public VulkanRenderer(ILogger logger)
     {
         InitializeLogging(logger);
-        var context = new VkContext();
+        _context = new VulkanDevice();
     }
     
     public void BeginFrame()
     {
-        throw new NotImplementedException();
+        
     }
     public void EndFrame()
     {
-        throw new NotImplementedException();
+        
     }
 }

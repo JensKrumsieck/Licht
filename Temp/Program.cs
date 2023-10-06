@@ -1,9 +1,10 @@
 ﻿using Licht.Applications;
 using Licht.Core;
-using Licht.Graphics;
+using Licht.Core.Graphics;
 using Licht.Vulkan;
+using Microsoft.Extensions.Logging;
 
-var opts = new ApplicationSpecification("Licht Applikation", new Version(1, 0, 0), 1600, 900, false);
+var opts = ApplicationSpecification.Default;
 
 var appBuilder = new ApplicationBuilder();
 appBuilder.Services.RegisterSingleton<ILogger, Logger>();

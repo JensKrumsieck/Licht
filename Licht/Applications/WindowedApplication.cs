@@ -1,18 +1,19 @@
-﻿using System.Collections.ObjectModel;
-using Licht.Applications.DependencyInjection;
-using Licht.Graphics;
+﻿using Licht.Core.Graphics;
 
 namespace Licht.Applications;
 
 public class WindowedApplication : BaseApplication
 {
-    private readonly Window _window;
-    private readonly IRenderer _renderer;
-    
-    public WindowedApplication(ReadOnlyDictionary<Type, ServiceDescriptor> services, ApplicationSpecification config) : base(services, config)
+    private Window _window = null!;
+    private IRenderer _renderer = null!;
+
+    protected internal override void Initialize(ApplicationSpecification config)
     {
+        base.Initialize(config); 
+        
         _window = new Window(Logger, config.ApplicationName, config.Width, config.Height, config.IsFullscreen);
         _window.Update += Update;
+        _window.Render += Render;
         _renderer = GetService<IRenderer>();
     }
 
@@ -21,10 +22,13 @@ public class WindowedApplication : BaseApplication
         base.Run();
         _window.Run();
     }
-    
-    public override void Update(float deltaTime)
+
+    public override void Render(float deltaTime)
     {
-        //window related logic here
+        base.Render(deltaTime);
+        _renderer.BeginFrame();
+        
+        _renderer.EndFrame();
     }
 
     public override void Dispose()
