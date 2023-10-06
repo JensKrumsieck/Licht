@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImGuiExample", "Examples\Im
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComputeShader", "Examples\ComputeShader\ComputeShader.csproj", "{FDB346DF-7799-4DAA-869C-737FBA8BD07F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Licht", "Licht\Licht.csproj", "{BA18A08A-E169-466A-B83F-C470A7B3B00F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Temp", "Temp\Temp.csproj", "{BBDB9BE8-F99B-478A-98DF-E3FFB2CBB100}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +39,14 @@ Global
 		{FDB346DF-7799-4DAA-869C-737FBA8BD07F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FDB346DF-7799-4DAA-869C-737FBA8BD07F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FDB346DF-7799-4DAA-869C-737FBA8BD07F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA18A08A-E169-466A-B83F-C470A7B3B00F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA18A08A-E169-466A-B83F-C470A7B3B00F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA18A08A-E169-466A-B83F-C470A7B3B00F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA18A08A-E169-466A-B83F-C470A7B3B00F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BBDB9BE8-F99B-478A-98DF-E3FFB2CBB100}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BBDB9BE8-F99B-478A-98DF-E3FFB2CBB100}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BBDB9BE8-F99B-478A-98DF-E3FFB2CBB100}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BBDB9BE8-F99B-478A-98DF-E3FFB2CBB100}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
