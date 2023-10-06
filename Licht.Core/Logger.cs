@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Logging;
 
 namespace Licht.Core;
-public class Logger : Microsoft.Extensions.Logging.ILogger
+public class Logger : ILogger
 {
     [StackTraceHidden]
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
@@ -28,12 +28,14 @@ public class Logger : Microsoft.Extensions.Logging.ILogger
         if (string.IsNullOrWhiteSpace(message)) message = string.Empty;
 
         var text = exception?.Message ?? message;
-        Console.WriteLine(text);
+        Console.WriteLine("[{0}]: {1}", logLevel, text);
         Console.ForegroundColor = defaultColor;
     }
+    
+    [StackTraceHidden]
     public bool IsEnabled(LogLevel logLevel)
     {
-        if (logLevel == LogLevel.Critical || logLevel == LogLevel.Error) return true;
+        if (logLevel is LogLevel.Critical or LogLevel.Error) return true;
 #if LWARN
         if (logLevel == LogLevel.Warning) return true;
 #endif
@@ -50,5 +52,6 @@ public class Logger : Microsoft.Extensions.Logging.ILogger
 #endif
         return false;
     }
+    
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
 }

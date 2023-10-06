@@ -1,5 +1,5 @@
-﻿global using static Licht.Vulkan.VulkanDevice;
-
+﻿global using static Licht.Vulkan.VkGraphicsDevice;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Licht.Core;
 using Licht.Vulkan.Extensions;
@@ -9,15 +9,13 @@ using Silk.NET.Vulkan.Extensions.EXT;
 
 namespace Licht.Vulkan;
 
-public unsafe class VulkanDevice : IDisposable
+public sealed unsafe class VkGraphicsDevice : IDisposable
 {
-    // ReSharper disable InconsistentNaming
     public static readonly Vk vk = Vk.GetApi();
     public static Instance instance => vk.CurrentInstance!.Value;
     public static Device device => vk.CurrentDevice!.Value;
-    // ReSharper enable InconsistentNaming
-    public static ILogger? Logger;
     
+    private readonly ILogger? _logger;
     private readonly Instance _instance;
     private readonly DebugUtilsMessengerEXT _debugMessenger;
     private readonly PhysicalDevice _physicalDevice;
@@ -28,10 +26,11 @@ public unsafe class VulkanDevice : IDisposable
     
     private readonly ExtDebugUtils _debugUtils;
     
-    public static void InitializeLogging(ILogger logger) => Logger = logger;
     
-    public VulkanDevice()
+    public VkGraphicsDevice(ILogger? logger = null)
     {
+        _logger = logger;
+        
         //TODO: create context based on project settings files
         var enabledInstanceExtensions = new List<string>();
         var enabledLayers = new List<string>();
@@ -60,7 +59,7 @@ public unsafe class VulkanDevice : IDisposable
             SType = StructureType.DebugUtilsMessengerCreateInfoExt,
             MessageSeverity = DebugUtilsMessageSeverityFlagsEXT.ErrorBitExt | DebugUtilsMessageSeverityFlagsEXT.WarningBitExt | DebugUtilsMessageSeverityFlagsEXT.InfoBitExt,
             MessageType = DebugUtilsMessageTypeFlagsEXT.ValidationBitExt | DebugUtilsMessageTypeFlagsEXT.PerformanceBitExt | DebugUtilsMessageTypeFlagsEXT.DeviceAddressBindingBitExt,
-            PfnUserCallback = (DebugUtilsMessengerCallbackFunctionEXT) DebugExtensions.DebugCallback
+            PfnUserCallback = (DebugUtilsMessengerCallbackFunctionEXT) DebugCallback
         };
 #endif
         var instanceInfo = new InstanceCreateInfo
@@ -76,14 +75,14 @@ public unsafe class VulkanDevice : IDisposable
             PNext = &debugInfo,
 #endif
         };
-        vk.CreateInstance(instanceInfo, null, out _instance).Validate();
-        Logger?.LogDebug("Enabled Layers: {Layers}", string.Join(", ", enabledLayers));
-        Logger?.LogDebug("Enabled Instance Extensions: {InstanceExtensions}", string.Join(", ", enabledInstanceExtensions));
+        vk.CreateInstance(instanceInfo, null, out _instance).Validate(_logger);
+        _logger?.LogDebug("Enabled Layers: {Layers}", string.Join(", ", enabledLayers));
+        _logger?.LogDebug("Enabled Instance Extensions: {InstanceExtensions}", string.Join(", ", enabledInstanceExtensions));
         
 #if LGRAPHICSDEBUG
         if(!vk.TryGetInstanceExtension(_instance, out _debugUtils))
-            Logger?.LogError($"Could not get instance extension {ExtDebugUtils.ExtensionName}!");
-        _debugUtils.CreateDebugUtilsMessenger(_instance, debugInfo, null, out _debugMessenger).Validate();
+            _logger?.LogError($"Could not get instance extension {ExtDebugUtils.ExtensionName}!");
+        _debugUtils.CreateDebugUtilsMessenger(_instance, debugInfo, null, out _debugMessenger).Validate(_logger);
 #endif
 
         var devices = vk.GetPhysicalDevices(_instance);
@@ -94,7 +93,7 @@ public unsafe class VulkanDevice : IDisposable
         });
         if (_physicalDevice.Handle == 0) _physicalDevice = devices.First();
         vk.GetPhysicalDeviceProperties(_physicalDevice, out var properties);
-        Logger?.LogDebug("{DeviceName}", new ByteString(properties.DeviceName));
+        _logger?.LogDebug("{DeviceName}", new ByteString(properties.DeviceName));
 
         var enabledDeviceExtensions = new List<string>();
         if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) 
@@ -104,7 +103,7 @@ public unsafe class VulkanDevice : IDisposable
         var defaultPriority = 1.0f;
         var queueFamilyCount = 0u;
         vk.GetPhysicalDeviceQueueFamilyProperties(_physicalDevice, ref queueFamilyCount, null);
-        Logger?.LogTrace("Found {QueueFamilyCount} device queues", queueFamilyCount);
+        _logger?.LogTrace("Found {QueueFamilyCount} device queues", queueFamilyCount);
         var queueFamilies = new QueueFamilyProperties[queueFamilyCount];
         fixed (QueueFamilyProperties* pQueueFamilies = queueFamilies)
             vk.GetPhysicalDeviceQueueFamilyProperties(_physicalDevice, ref queueFamilyCount, pQueueFamilies);
@@ -137,8 +136,8 @@ public unsafe class VulkanDevice : IDisposable
             QueueCreateInfoCount = 1,
             PQueueCreateInfos = &queueInfo
         };
-        vk.CreateDevice(_physicalDevice, deviceInfo, null, out _device).Validate();
-        Logger?.LogDebug("Enabled Device Extensions: {DeviceExtensions}", string.Join(", ", enabledDeviceExtensions));
+        vk.CreateDevice(_physicalDevice, deviceInfo, null, out _device).Validate(_logger);
+        _logger?.LogDebug("Enabled Device Extensions: {DeviceExtensions}", string.Join(", ", enabledDeviceExtensions));
         vk.GetDeviceQueue(_device, _mainQueueIndex, 0, out _mainQueue);
 
         var poolInfo = new CommandPoolCreateInfo
@@ -148,7 +147,7 @@ public unsafe class VulkanDevice : IDisposable
             //TODO: find out what these flags actually mean
             Flags = CommandPoolCreateFlags.TransientBit | CommandPoolCreateFlags.ResetCommandBufferBit
         };
-        vk.CreateCommandPool(_device, poolInfo, null, out _commandPool).Validate();
+        vk.CreateCommandPool(_device, poolInfo, null, out _commandPool).Validate(_logger);
     }
    
     public void Dispose()
@@ -157,7 +156,17 @@ public unsafe class VulkanDevice : IDisposable
         _debugUtils.Dispose();
         
         vk.DestroyInstance(_instance, null);
-        
-        GC.SuppressFinalize(this);
+    }
+    
+    [StackTraceHidden]
+    private uint DebugCallback(DebugUtilsMessageSeverityFlagsEXT severityFlags,
+        DebugUtilsMessageTypeFlagsEXT messageTypeFlags,
+        DebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void* userData)
+    {
+        var message = new ByteString(pCallbackData->PMessage);
+        if(_logger is null) Console.WriteLine("[{0}]: {1}: {2}",severityFlags.GetLogLevel(), messageTypeFlags, message);
+        else _logger?.Log(severityFlags.GetLogLevel(), "{MessageTypeFlags}: {Message}", messageTypeFlags, message);
+        return Vk.False;
     }
 }

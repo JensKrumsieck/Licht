@@ -8,7 +8,7 @@ namespace Licht.Vulkan.Extensions;
 
 public static unsafe class DebugExtensions
 {
-    private static LogLevel GetLogLevel(this DebugUtilsMessageSeverityFlagsEXT severityFlagsExt) => severityFlagsExt switch
+    public static LogLevel GetLogLevel(this DebugUtilsMessageSeverityFlagsEXT severityFlagsExt) => severityFlagsExt switch
     {
         DebugUtilsMessageSeverityFlagsEXT.None => LogLevel.Trace,
         DebugUtilsMessageSeverityFlagsEXT.VerboseBitExt => LogLevel.Debug,
@@ -19,24 +19,20 @@ public static unsafe class DebugExtensions
     };
 
     [StackTraceHidden]
-    public static void Validate(this Result result, [CallerArgumentExpression(nameof(result))] string operation = "")
+    public static void Validate(this Result result, ILogger? logger = null, [CallerArgumentExpression(nameof(result))] string operation = "")
     {
+        if (logger is null)
+        {
+            Console.WriteLine("{0} reported {1}!", operation, result);
+            return;
+        }
+        
         if ((int) result < 0)
         {
             var msg = $"{operation} failed: {result}";
-            VulkanDevice.Logger?.LogError(new ApplicationException(msg), msg);
+            logger.LogError(new ApplicationException(msg), msg);
+            return;
         }
-        VulkanDevice.Logger?.LogDebug("{Operation} reported {Result}!", operation, result);
-    }
-    
-    [StackTraceHidden]
-    internal static uint DebugCallback(DebugUtilsMessageSeverityFlagsEXT severityFlags,
-        DebugUtilsMessageTypeFlagsEXT messageTypeFlags,
-        DebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* userData)
-    {
-        var message = new ByteString(pCallbackData->PMessage);
-        VulkanDevice.Logger?.Log(severityFlags.GetLogLevel(), "{MessageTypeFlags}: {Message}", messageTypeFlags, message);
-        return Vk.False;
+        logger.LogDebug("{Operation} reported {Result}!", operation, result);
     }
 }

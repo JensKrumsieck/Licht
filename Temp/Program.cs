@@ -8,7 +8,7 @@ var opts = ApplicationSpecification.Default;
 
 var appBuilder = new ApplicationBuilder();
 appBuilder.Services.RegisterSingleton<ILogger, Logger>();
-appBuilder.Services.RegisterSingleton<IRenderer, VulkanRenderer>();
+appBuilder.Services.RegisterSingleton<IRenderer, VkRenderer>();
 
 using var app = appBuilder.Build<WindowedApplication>(opts);
 
