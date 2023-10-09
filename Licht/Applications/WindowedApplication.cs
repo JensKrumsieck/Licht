@@ -28,12 +28,12 @@ public class WindowedApplication : BaseApplication
         base.Render(deltaTime);
         var cmd = _renderer.BeginFrame();
         _renderer.BeginRenderPass(cmd);
-        DrawFrame(deltaTime);
+        DrawFrame(cmd, deltaTime);
         _renderer.EndRenderPass(cmd);
         _renderer.EndFrame();
     }
 
-    public virtual void DrawFrame(float deltaTime)
+    public virtual void DrawFrame(ICommandList cmd, float deltaTime)
     {
         //does nothing!
     }

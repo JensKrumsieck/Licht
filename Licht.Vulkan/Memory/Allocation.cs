@@ -24,16 +24,18 @@ public unsafe struct Allocation : IDisposable
         Offset = offset;
     }
 
+    [Pure]
     public Result Map(ulong size = Vk.WholeSize, ulong offset = 0) =>
         vk.MapMemory(_allocator.Device.Device, AllocatedMemory, offset, size, 0, ref PMappedData);
-
+    
+    [Pure]
     public void Unmap()
     {
         if(PMappedData is null) return;
         vk.UnmapMemory(_allocator.Device.Device, AllocatedMemory);
         PMappedData = null;
     }
-
+    
     [Pure]
     public void Dispose()
     {

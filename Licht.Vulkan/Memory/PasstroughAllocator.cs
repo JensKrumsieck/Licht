@@ -44,7 +44,7 @@ public sealed unsafe class PassthroughAllocator : IAllocator
         };
         vk.AllocateMemory(_state.Context.Device, allocInfo, null, out var allocatedMemory).Validate(_logger);
         alloc = new Allocation(this, allocatedMemory, createInfo.MemoryTypeIndex, 0, createInfo.Size, 0);
-        _logger?.LogTrace("Allocated {Size} kB of Memory - Total Allocations {Count} - Total allocated Memory {TotalSize} MB", 
+        _logger?.LogDebug("Allocated {Size} kB of Memory - Total Allocations {Count} - Total allocated Memory {TotalSize} MB", 
             alloc.Size / 1024,
             _state.TotalAllocations, 
             _state.TotalSize / 1024 / 1024);
@@ -56,7 +56,7 @@ public sealed unsafe class PassthroughAllocator : IAllocator
         _state.MemoryTypeAllocSizes[alloc.Type] -= alloc.Size;
         _state.TotalSize -= alloc.Size;
         vk.FreeMemory(_state.Context.Device, alloc.AllocatedMemory, null);
-        _logger?.LogTrace("Freed {Size} kB of Memory - Total Allocations {Count} - Total allocated Memory {TotalSize} MB",
+        _logger?.LogDebug("Freed {Size} kB of Memory - Total Allocations {Count} - Total allocated Memory {TotalSize} MB",
             alloc.Size / 1024, 
             _state.TotalAllocations, 
             _state.TotalSize / 1024 / 1024);

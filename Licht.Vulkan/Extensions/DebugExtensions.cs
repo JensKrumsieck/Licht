@@ -25,13 +25,13 @@ public static unsafe class DebugExtensions
             Console.WriteLine("{0} reported {1}!", operation, result);
             return;
         }
-        
         if ((int) result < 0)
         {
             var msg = $"{operation} failed: {result}";
             logger.LogError(new ApplicationException(msg), msg);
             return;
         }
-        logger.LogDebug("{Operation} reported {Result}!", operation, result);
+        if(result is Result.Success) logger.LogTrace("{Operation} reported {Result}!", operation, result);
+        else logger.LogDebug("{Operation} reported {Result}!", operation, result);
     }
 }

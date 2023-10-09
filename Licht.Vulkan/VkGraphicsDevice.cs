@@ -1,5 +1,6 @@
 ﻿global using static Licht.Vulkan.VkGraphicsDevice;
 global using Semaphore = Silk.NET.Vulkan.Semaphore;
+global using Buffer = Silk.NET.Vulkan.Buffer;
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -28,9 +29,9 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
     private readonly DebugUtilsMessengerEXT _debugMessenger;
     private readonly PhysicalDevice _physicalDevice;
     private readonly Device _device;
-    private Queue _mainQueue;
+    private readonly Queue _mainQueue;
     private readonly uint _mainQueueIndex;
-    private CommandPool _commandPool;
+    private readonly CommandPool _commandPool;
     
     private readonly ExtDebugUtils _debugUtils;
     
@@ -192,13 +193,11 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         for (var i = 0; i < vkCommandBuffers.Length; i++) vkCommandBuffers[i] = new VkCommandBuffer(commandBuffers[i]);
         return vkCommandBuffers;
     }
-
     public void FreeCommandBuffers(VkCommandBuffer[] commandBuffers) =>
         vk.FreeCommandBuffers(_device, _commandPool, (uint) commandBuffers.Length,
             Array.ConvertAll(commandBuffers, cmd => (CommandBuffer) cmd));
     public void FreeCommandBuffer(CommandBuffer commandBuffer) =>
         vk.FreeCommandBuffers(_device, _commandPool, 1, commandBuffer);
-
     public Format FindFormat(Format[] candidates, ImageTiling tiling, FormatFeatureFlags formatFeatureFlags)
     {
         foreach (var candidate in candidates)
@@ -236,9 +235,30 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         return sampler;
     }
     public void DestroySampler(Sampler sampler) => vk.DestroySampler(_device, sampler, null);
-   
+    public VkBuffer CreateBuffer(uint instanceSize, uint instanceCount, BufferUsageFlags usageFlags, MemoryPropertyFlags memoryFlags)
+    {
+        ulong alignedSize = instanceSize * instanceCount;
+        vk.GetPhysicalDeviceProperties(_physicalDevice, out var props);
+        if (usageFlags == BufferUsageFlags.UniformBufferBit) alignedSize = VkBuffer.GetAlignment(alignedSize, props.Limits.MinUniformBufferOffsetAlignment);
+        else alignedSize = VkBuffer.GetAlignment(alignedSize, 256);
+        var bufferInfo = new BufferCreateInfo
+        {
+            SType = StructureType.BufferCreateInfo,
+            Size = alignedSize,
+            Usage = usageFlags,
+            SharingMode = SharingMode.Exclusive
+        };
+        vk.CreateBuffer(_device, bufferInfo, null, out var buffer).Validate();
+        var allocInfo = new AllocationCreateInfo {Usage = memoryFlags};
+        _allocator.AllocateBuffer(buffer, allocInfo, out var allocation);
+        return new VkBuffer(_device, alignedSize, new AllocatedBuffer(buffer, allocation));
+    }
+    
+    
     public void Dispose()
     {
+        WaitIdle();
+        _allocator.Dispose();
         vk.DestroyCommandPool(_device, _commandPool, null);
         vk.DestroyDevice(_device, null);
         

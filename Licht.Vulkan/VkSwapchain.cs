@@ -321,21 +321,22 @@ public sealed unsafe class VkSwapchain : IDisposable
 
     public void Dispose()
     {
-        _khrSwapchain.DestroySwapchain(_device.Device, _swapchain, null);
-        _khrSwapchain.Dispose();
-
+        _device.WaitIdle();
+        vk.DestroyRenderPass(_device.Device, RenderPass, null);
         for (var i = 0; i < _swapchainImages.Length; i++)
         {
-            vk.DestroyImage(_device.Device, _swapchainImages[i], null);
             vk.DestroyImageView(_device.Device, _swapchainImageViews[i], null);
-            _depthImages[i].Allocation.Dispose();
             vk.DestroyImage(_device.Device, _depthImages[i].Image, null);
             vk.DestroyImageView(_device.Device, _depthImageViews[i], null);
+            _depthImages[i].Allocation.Dispose();
+            vk.DestroyFramebuffer(_device.Device, Framebuffers[i], null);
         }
         Array.Clear(_swapchainImages);
         Array.Clear(_swapchainImageViews);
         Array.Clear(_depthImageViews);
         Array.Clear(_depthImages);
+        Array.Clear(_imagesInFlight);
+        Array.Clear(Framebuffers);
         
         for (var i = 0; i < MaxImagesInFlight; i++)
         {
@@ -346,5 +347,8 @@ public sealed unsafe class VkSwapchain : IDisposable
         Array.Clear(_inFlightFences);
         Array.Clear(_imageAvailableSemaphores);
         Array.Clear(_renderFinishedSemaphores);
+        
+        _khrSwapchain.DestroySwapchain(_device.Device, _swapchain, null);
+        _khrSwapchain.Dispose();
     }
 }

@@ -2,11 +2,12 @@
 
 namespace Licht.Vulkan.Memory;
 
-public readonly struct AllocatedImage
+public struct AllocatedImage
 {
     public readonly Image Image;
     public readonly Allocation Allocation;
-    public AllocatedImage(Image image, Allocation allocation)
+    
+    internal AllocatedImage(Image image, Allocation allocation)
     {
         Image = image;
         Allocation = allocation;
