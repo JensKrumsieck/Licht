@@ -40,7 +40,7 @@ public sealed unsafe class VkSurface : IDisposable
     
     public void Dispose()
     {
-        if(_surface.Handle != 0) _khrSurface.DestroySurface(_device.Instance, _surface, null);
+        _khrSurface.DestroySurface(_device.Instance, _surface, null);
         _khrSurface.Dispose();
     }
 }

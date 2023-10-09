@@ -41,7 +41,6 @@ public class WindowedApplication : BaseApplication
     public override void Dispose()
     {
         base.Dispose();
-        
         _window.Update -= Update;
         _window.Render -= Render;
         _window.Dispose();

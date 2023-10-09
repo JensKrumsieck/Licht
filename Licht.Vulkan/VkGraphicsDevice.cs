@@ -235,25 +235,40 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         return sampler;
     }
     public void DestroySampler(Sampler sampler) => vk.DestroySampler(_device, sampler, null);
-    public VkBuffer CreateBuffer(uint instanceSize, uint instanceCount, BufferUsageFlags usageFlags, MemoryPropertyFlags memoryFlags)
+    public AllocatedBuffer CreateBuffer(ulong bufferSize, BufferUsageFlags usageFlags, MemoryPropertyFlags memoryFlags)
     {
-        ulong alignedSize = instanceSize * instanceCount;
-        vk.GetPhysicalDeviceProperties(_physicalDevice, out var props);
-        if (usageFlags == BufferUsageFlags.UniformBufferBit) alignedSize = VkBuffer.GetAlignment(alignedSize, props.Limits.MinUniformBufferOffsetAlignment);
-        else alignedSize = VkBuffer.GetAlignment(alignedSize, 256);
         var bufferInfo = new BufferCreateInfo
         {
             SType = StructureType.BufferCreateInfo,
-            Size = alignedSize,
+            Size = bufferSize,
             Usage = usageFlags,
             SharingMode = SharingMode.Exclusive
         };
-        vk.CreateBuffer(_device, bufferInfo, null, out var buffer).Validate();
+        vk.CreateBuffer(_device, bufferInfo, null, out var buffer).Validate(_logger);
         var allocInfo = new AllocationCreateInfo {Usage = memoryFlags};
         _allocator.AllocateBuffer(buffer, allocInfo, out var allocation);
-        return new VkBuffer(_device, alignedSize, new AllocatedBuffer(buffer, allocation));
+        return new AllocatedBuffer(buffer, allocation);
     }
-    
+    public VkCommandBuffer BeginSingleTimeCommands()
+    {
+        var cmd = AllocateCommandBuffers(1)[0];
+        cmd.Begin();
+        return cmd;
+    }
+    public void EndSingleTimeCommands(VkCommandBuffer cmd)
+    {
+        cmd.End();
+        var commandBuffer = (CommandBuffer) cmd;
+        var submitInfo = new SubmitInfo
+        {
+            SType = StructureType.SubmitInfo,
+            CommandBufferCount = 1,
+            PCommandBuffers = &commandBuffer
+        };
+        SubmitMainQueue(submitInfo, default);
+        WaitForQueue();
+        FreeCommandBuffer(cmd);
+    }
     
     public void Dispose()
     {

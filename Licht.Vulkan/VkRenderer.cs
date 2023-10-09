@@ -103,11 +103,9 @@ public class VkRenderer : IRenderer, IDisposable
     
     public void Dispose()
     {
+        _device.WaitIdle();
         _swapchain?.Dispose();
-        _surface.Dispose();
         _device.FreeCommandBuffers(_commandBuffers);
-        _device.Dispose();
-        
         GC.SuppressFinalize(this);
     }
 }

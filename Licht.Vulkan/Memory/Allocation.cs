@@ -3,7 +3,7 @@ using Silk.NET.Vulkan;
 
 namespace Licht.Vulkan.Memory;
 
-public unsafe struct Allocation : IDisposable
+public unsafe class Allocation : IDisposable
 {
     private readonly IAllocator _allocator;
     public DeviceMemory AllocatedMemory;
@@ -11,8 +11,7 @@ public unsafe struct Allocation : IDisposable
     public readonly uint Id;
     public readonly ulong Size;
     public readonly uint Offset;
-
-    public void* PMappedData;
+    private bool _hostMapped;
 
     public Allocation(IAllocator allocator, DeviceMemory allocatedMemory, uint type, uint id, ulong size, uint offset)
     {
@@ -25,21 +24,22 @@ public unsafe struct Allocation : IDisposable
     }
 
     [Pure]
-    public Result Map(ulong size = Vk.WholeSize, ulong offset = 0) =>
-        vk.MapMemory(_allocator.Device.Device, AllocatedMemory, offset, size, 0, ref PMappedData);
-    
+    public Result Map(ref void* pMappedData, ulong size = Vk.WholeSize, ulong offset = 0)
+    { 
+        _hostMapped = true;
+        return vk.MapMemory(_allocator.Device.Device, AllocatedMemory, offset, size, 0, ref pMappedData);
+    }
+
     [Pure]
     public void Unmap()
     {
-        if(PMappedData is null) return;
+        _hostMapped = false;
         vk.UnmapMemory(_allocator.Device.Device, AllocatedMemory);
-        PMappedData = null;
     }
     
-    [Pure]
     public void Dispose()
     {
-        if(PMappedData is null) Unmap();
+        if(_hostMapped) Unmap();
         _allocator.Free(this);
     }
 }
