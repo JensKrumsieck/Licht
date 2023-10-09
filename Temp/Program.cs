@@ -25,6 +25,6 @@ class TriangleApplication : WindowedApplication
 
     public override void DrawFrame(ICommandList cmd, float deltaTime)
     {
-        base.DrawFrame(cmd, deltaTime);
+        
     }
 }
