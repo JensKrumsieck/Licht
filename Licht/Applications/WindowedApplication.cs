@@ -28,9 +28,14 @@ public class WindowedApplication : BaseApplication
         base.Render(deltaTime);
         var cmd = _renderer.BeginFrame();
         _renderer.BeginRenderPass(cmd);
-        
+        DrawFrame();
         _renderer.EndRenderPass(cmd);
         _renderer.EndFrame();
+    }
+
+    public virtual void DrawFrame(float deltaTime)
+    {
+        //does nothing!
     }
 
     public override void Dispose()
