@@ -1,4 +1,4 @@
-﻿using Licht.Core.Graphics;
+﻿using Licht.GraphicsCore.Graphics;
 using Microsoft.Extensions.Logging;
 
 namespace Licht.Applications;

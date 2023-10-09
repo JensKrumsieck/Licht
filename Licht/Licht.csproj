@@ -7,7 +7,7 @@
     </PropertyGroup>
     
     <ItemGroup>
-      <ProjectReference Include="..\Licht.Core\Licht.Core.csproj" />
+      <ProjectReference Include="..\Licht.GraphicsCore\Licht.GraphicsCore.csproj" />
     </ItemGroup>
     
     <ItemGroup>

@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace Licht;
+namespace Licht.Core;
 public class Logger : ILogger
 {
     [StackTraceHidden]

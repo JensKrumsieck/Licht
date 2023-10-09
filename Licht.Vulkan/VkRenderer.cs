@@ -1,4 +1,4 @@
-﻿using Licht.Core.Graphics;
+﻿using Licht.GraphicsCore.Graphics;
 using Licht.Vulkan.Extensions;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;

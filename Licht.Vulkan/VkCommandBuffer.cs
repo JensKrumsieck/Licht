@@ -1,4 +1,4 @@
-﻿using Licht.Core.Graphics;
+﻿using Licht.GraphicsCore.Graphics;
 using Silk.NET.Vulkan;
 
 namespace Licht.Vulkan;

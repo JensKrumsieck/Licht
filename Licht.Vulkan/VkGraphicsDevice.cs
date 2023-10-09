@@ -3,7 +3,7 @@ global using Semaphore = Silk.NET.Vulkan.Semaphore;
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Licht.Core;
+using Licht.GraphicsCore;
 using Licht.Vulkan.Extensions;
 using Licht.Vulkan.Memory;
 using Microsoft.Extensions.Logging;

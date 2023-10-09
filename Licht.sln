@@ -17,7 +17,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Licht", "Licht\Licht.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Temp", "Temp\Temp.csproj", "{BBDB9BE8-F99B-478A-98DF-E3FFB2CBB100}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Licht.Core", "Licht.Core\Licht.Core.csproj", "{9C15FB6A-8421-4351-97EA-1B0B9CEFB6B7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Licht.GraphicsCore", "Licht.GraphicsCore\Licht.GraphicsCore.csproj", "{9C15FB6A-8421-4351-97EA-1B0B9CEFB6B7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Licht.Vulkan", "Licht.Vulkan\Licht.Vulkan.csproj", "{54BBC41E-7E79-4C5D-92A9-0D3741B37BCC}"
 EndProject

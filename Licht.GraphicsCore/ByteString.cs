@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Licht.Core;
+namespace Licht.GraphicsCore;
 
 public readonly unsafe struct ByteString : IDisposable
 {

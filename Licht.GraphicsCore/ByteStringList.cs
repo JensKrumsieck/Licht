@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using Silk.NET.Core.Native;
 
-namespace Licht.Core;
+namespace Licht.GraphicsCore;
 
 public sealed unsafe class ByteStringList : IDisposable
 {

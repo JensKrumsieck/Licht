@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Licht.Core;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;
 
