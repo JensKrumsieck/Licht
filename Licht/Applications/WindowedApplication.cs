@@ -5,8 +5,13 @@ namespace Licht.Applications;
 public class WindowedApplication : BaseApplication
 {
     private Window _window = null!;
-    private IRenderer _renderer = null!;
+    private readonly IRenderer _renderer;
 
+    public WindowedApplication(IRenderer renderer)
+    {
+        _renderer = renderer;
+    }
+    
     protected internal override void Initialize(ApplicationSpecification config)
     {
         base.Initialize(config); 
@@ -14,7 +19,6 @@ public class WindowedApplication : BaseApplication
         _window = new Window(Logger, config.ApplicationName, config.Width, config.Height, config.IsFullscreen);
         _window.Update += Update;
         _window.Render += Render;
-        _renderer = GetService<IRenderer>();
     }
 
     public override void Run()

@@ -8,8 +8,11 @@ public class ApplicationBuilder
     public readonly ServiceCollection Services = new();
     public IApplication Build<T>(ApplicationSpecification specification) where T : BaseApplication
     {
-        var app = (T) Activator.CreateInstance(typeof(T))!;
-        app.Services = Services.Build();
+        Services.RegisterSingleton<BaseApplication, T>();
+        var serviceCollection = Services.Build();
+        var container = new DiContainer { Services = serviceCollection };
+        var app = container.GetService<BaseApplication>();
+        app.Services = serviceCollection;
         app.Logger = app.GetService<ILogger>();
         app.Initialize(specification);
         app.Logger.LogTrace("Application created with {Specification}", specification);
