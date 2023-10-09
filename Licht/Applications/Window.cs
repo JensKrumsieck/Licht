@@ -1,10 +1,12 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Licht.Core.Graphics;
+using Microsoft.Extensions.Logging;
+using Silk.NET.Core.Contexts;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
 namespace Licht.Applications;
 
-public sealed class Window : IDisposable
+public sealed class Window : IVkSurfaceSource, IGLContextSource, IWindowProvider, IDisposable
 {
     private readonly IWindow _view;
     private readonly ILogger _logger;
@@ -45,7 +47,7 @@ public sealed class Window : IDisposable
     {
         Width = (uint) newSize.X;
         Height = (uint) newSize.Y;
-        _logger.LogTrace($"Window resized to {newSize}");
+        _logger.LogTrace("Window resized to {NewSize}", newSize);
     }
 
     public void Run()
@@ -66,4 +68,8 @@ public sealed class Window : IDisposable
     }
     
     public void Dispose() => _view.Dispose();
+
+    public IVkSurface? VkSurface => _view.VkSurface;
+    public IGLContext? GLContext => _view.GLContext;
+    IWindow IWindowProvider.Window => _view;
 }

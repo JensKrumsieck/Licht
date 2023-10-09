@@ -1,22 +1,30 @@
 ﻿global using static Licht.Vulkan.VkGraphicsDevice;
+global using Semaphore = Silk.NET.Vulkan.Semaphore;
+
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Licht.Core;
 using Licht.Vulkan.Extensions;
+using Licht.Vulkan.Memory;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.EXT;
+using Silk.NET.Vulkan.Extensions.KHR;
 
 namespace Licht.Vulkan;
 
 public sealed unsafe class VkGraphicsDevice : IDisposable
 {
     public static readonly Vk vk = Vk.GetApi();
-    public static Instance instance => vk.CurrentInstance!.Value;
-    public static Device device => vk.CurrentDevice!.Value;
+
+    public PhysicalDevice PhysicalDevice => _physicalDevice;
+    public Instance Instance => _instance;
+    public Device Device => _device;
+    public Queue MainQueue => _mainQueue;
     
     private readonly ILogger? _logger;
     private readonly Instance _instance;
+    private readonly IAllocator _allocator;
     private readonly DebugUtilsMessengerEXT _debugMessenger;
     private readonly PhysicalDevice _physicalDevice;
     private readonly Device _device;
@@ -27,12 +35,21 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
     private readonly ExtDebugUtils _debugUtils;
     
     
-    public VkGraphicsDevice(ILogger? logger = null)
+    public VkGraphicsDevice(IAllocator allocator, ILogger? logger = null)
     {
         _logger = logger;
+        _allocator = allocator;
         
         //TODO: create context based on project settings files
-        var enabledInstanceExtensions = new List<string>();
+        var enabledInstanceExtensions = new List<string>
+        {
+            KhrSurface.ExtensionName
+        };
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            enabledInstanceExtensions.Add(KhrWin32Surface.ExtensionName);
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            enabledInstanceExtensions.Add(KhrXlibSurface.ExtensionName);
+        
         var enabledLayers = new List<string>();
 #if LGRAPHICSDEBUG
         enabledInstanceExtensions.Add(ExtDebugUtils.ExtensionName);
@@ -41,6 +58,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         var flags = InstanceCreateFlags.None;
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
+            enabledInstanceExtensions.Add(ExtMetalSurface.ExtensionName);
             enabledInstanceExtensions.Add("VK_KHR_portability_enumeration");
             flags |= InstanceCreateFlags.EnumeratePortabilityBitKhr;
         }
@@ -95,7 +113,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         vk.GetPhysicalDeviceProperties(_physicalDevice, out var properties);
         _logger?.LogDebug("{DeviceName}", new ByteString(properties.DeviceName));
 
-        var enabledDeviceExtensions = new List<string>();
+        var enabledDeviceExtensions = new List<string>{ KhrSwapchain.ExtensionName };
         if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) 
             enabledDeviceExtensions.Add("VK_KHR_portability_subset");
         var pPEnabledDeviceExtensions = new ByteStringList(enabledDeviceExtensions);
@@ -148,7 +166,76 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
             Flags = CommandPoolCreateFlags.TransientBit | CommandPoolCreateFlags.ResetCommandBufferBit
         };
         vk.CreateCommandPool(_device, poolInfo, null, out _commandPool).Validate(_logger);
+        
+        //bind to allocator
+        allocator.Bind(this);
     }
+
+    public void WaitIdle() => vk.DeviceWaitIdle(_device);
+    public void WaitForFence(Fence fence) => vk.WaitForFences(_device, 1u, fence, true, ulong.MaxValue);
+    public Result WaitForQueue() => vk.QueueWaitIdle(_mainQueue);
+    public Result ResetFence(Fence fence) => vk.ResetFences(_device, 1, fence);
+    public Result SubmitMainQueue(SubmitInfo submitInfo, Fence fence) => vk.QueueSubmit(_mainQueue, 1, submitInfo, fence);
+    public VkCommandBuffer[] AllocateCommandBuffers(uint count)
+    {
+        var commandBuffers = new CommandBuffer[count];
+        var allocInfo = new CommandBufferAllocateInfo
+        {
+            SType = StructureType.CommandBufferAllocateInfo,
+            Level = CommandBufferLevel.Primary,
+            CommandPool = _commandPool,
+            CommandBufferCount = count
+        };
+        fixed (void* pCommandBuffers = commandBuffers)
+            vk.AllocateCommandBuffers(_device, allocInfo, (CommandBuffer*)pCommandBuffers).Validate(_logger);
+        var vkCommandBuffers = new VkCommandBuffer[count];
+        for (var i = 0; i < vkCommandBuffers.Length; i++) vkCommandBuffers[i] = new VkCommandBuffer(commandBuffers[i]);
+        return vkCommandBuffers;
+    }
+
+    public void FreeCommandBuffers(VkCommandBuffer[] commandBuffers) =>
+        vk.FreeCommandBuffers(_device, _commandPool, (uint) commandBuffers.Length,
+            Array.ConvertAll(commandBuffers, cmd => (CommandBuffer) cmd));
+    public void FreeCommandBuffer(CommandBuffer commandBuffer) =>
+        vk.FreeCommandBuffers(_device, _commandPool, 1, commandBuffer);
+
+    public Format FindFormat(Format[] candidates, ImageTiling tiling, FormatFeatureFlags formatFeatureFlags)
+    {
+        foreach (var candidate in candidates)
+        {
+            vk.GetPhysicalDeviceFormatProperties(_physicalDevice, candidate, out var props);
+            if (tiling == ImageTiling.Linear && (props.LinearTilingFeatures & formatFeatureFlags) == formatFeatureFlags)
+                return candidate;
+            if (tiling == ImageTiling.Optimal && (props.OptimalTilingFeatures & formatFeatureFlags) == formatFeatureFlags)
+                return candidate;
+        }
+        _logger?.LogError("Unable to find supported format for {Tiling} and {FormatFeatureFlags}", tiling, formatFeatureFlags);
+        throw new Exception($"Unable to find supported format for {tiling} and {formatFeatureFlags}");
+    }
+    public AllocatedImage CreateImage(ImageCreateInfo info, MemoryPropertyFlags propertyFlags)
+    {
+        vk.CreateImage(_device, info, null, out var image).Validate(_logger);
+        var allocInfo = new AllocationCreateInfo {Usage = propertyFlags};
+        _allocator.AllocateImage(image, allocInfo, out var allocation);
+        return new AllocatedImage(image, allocation);
+    }
+    public void DestroyImage(AllocatedImage image)
+    {
+        vk.DestroyImage(_device, image.Image, null);
+        image.Allocation.Dispose();
+    }
+    public ImageView CreateImageView(ImageViewCreateInfo info)
+    {
+        vk.CreateImageView(_device, info, null, out var imageView).Validate(_logger);
+        return imageView;
+    }
+    public void DestroyImageView(ImageView view) => vk.DestroyImageView(_device, view, null);
+    public Sampler CreateSampler(SamplerCreateInfo createInfo)
+    {
+        vk.CreateSampler(_device, createInfo, default, out var sampler).Validate(_logger);
+        return sampler;
+    }
+    public void DestroySampler(Sampler sampler) => vk.DestroySampler(_device, sampler, null);
    
     public void Dispose()
     {

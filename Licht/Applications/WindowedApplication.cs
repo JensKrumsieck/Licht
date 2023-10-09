@@ -26,8 +26,10 @@ public class WindowedApplication : BaseApplication
     public override void Render(float deltaTime)
     {
         base.Render(deltaTime);
-        _renderer.BeginFrame();
+        var cmd = _renderer.BeginFrame();
+        _renderer.BeginRenderPass(cmd);
         
+        _renderer.EndRenderPass(cmd);
         _renderer.EndFrame();
     }
 

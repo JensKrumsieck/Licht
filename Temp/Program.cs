@@ -1,17 +1,19 @@
 ﻿using Licht;
 using Licht.Applications;
-using Licht.Core.Graphics;
-using Licht.Vulkan;
+using Licht.Vulkan.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 var opts = ApplicationSpecification.Default;
 
-var builder = new ApplicationBuilder();
-builder.Services.AddSingleton<ILogger, Logger>();
-builder.Services.AddSingleton<IRenderer, VkRenderer>();
-builder.Services.AddSingleton<Window>(l => new Window(l.GetService<ILogger>()!, opts.ApplicationName, opts.Width, opts.Height, opts.IsFullscreen));
+var builder = new ApplicationBuilder(opts);
 
-using var app = builder.Build<WindowedApplication>(opts);
+builder.Services.AddSingleton<ILogger, Logger>();
+builder.Services.AddWindow(opts);
+builder.Services.AddVulkanRenderer();
+//use the simple allocator (only one yet!)
+builder.Services.AddSingleton<IAllocator, PassthroughAllocator>();
+
+using var app = builder.Build<WindowedApplication>();
 
 app.Run();

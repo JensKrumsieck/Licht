@@ -27,7 +27,6 @@ public abstract class BaseApplication : IApplication
     public virtual void Dispose()
     {
         Logger.LogTrace("Application exit");
-        Services.Dispose();
         GC.SuppressFinalize(this);
     }
 }

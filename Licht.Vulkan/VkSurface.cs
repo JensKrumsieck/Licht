@@ -8,15 +8,18 @@ namespace Licht.Vulkan;
 
 public sealed unsafe class VkSurface : IDisposable
 {
+    private readonly VkGraphicsDevice _device;
     private readonly KhrSurface _khrSurface;
     private readonly SurfaceKHR _surface;
-    public VkSurface(IVkSurfaceSource surfaceProvider, ILogger? logger = null)
+    public VkSurface(VkGraphicsDevice device, IVkSurfaceSource surfaceProvider, ILogger? logger = null)
     {
-        if(!vk.TryGetInstanceExtension(instance, out _khrSurface)) 
+        _device = device;
+        if(!vk.TryGetInstanceExtension(_device.Instance, out _khrSurface)) 
             logger?.LogError($"Could not find instance extension {KhrSurface.ExtensionName}");
         _surface = surfaceProvider.VkSurface!
-            .Create<AllocationCallbacks>(new VkHandle(instance.Handle), null)
+            .Create<AllocationCallbacks>(new VkHandle(_device.Instance.Handle), null)
             .ToSurface();
+        logger?.LogTrace("VkSurface created");
     }
     
     public (SurfaceCapabilitiesKHR capabilities, SurfaceFormatKHR[] formats, PresentModeKHR[] presentModes) GetSwapchainSupport(PhysicalDevice physicalDevice)
@@ -32,10 +35,12 @@ public sealed unsafe class VkSurface : IDisposable
         _khrSurface.GetPhysicalDeviceSurfacePresentModes(physicalDevice, _surface, &count, presentModes);
         return (capabilities, formats, presentModes);
     }
+
+    public static implicit operator SurfaceKHR(VkSurface s) => s._surface;
     
     public void Dispose()
     {
-        _khrSurface.DestroySurface(instance, _surface, null);
+        if(_surface.Handle != 0) _khrSurface.DestroySurface(_device.Instance, _surface, null);
         _khrSurface.Dispose();
     }
 }
