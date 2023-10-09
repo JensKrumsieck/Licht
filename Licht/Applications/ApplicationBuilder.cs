@@ -1,5 +1,4 @@
-﻿using Licht.Applications.DependencyInjection;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace Licht.Applications;
 
@@ -8,14 +7,11 @@ public class ApplicationBuilder
     public readonly ServiceCollection Services = new();
     public IApplication Build<T>(ApplicationSpecification specification) where T : BaseApplication
     {
-        Services.RegisterSingleton<BaseApplication, T>();
-        var serviceCollection = Services.Build();
-        var container = new DiContainer { Services = serviceCollection };
-        var app = container.GetService<BaseApplication>();
-        app.Services = serviceCollection;
-        app.Logger = app.GetService<ILogger>();
+        Services.AddSingleton<BaseApplication, T>();
+        var serviceProvider = Services.BuildServiceProvider(new ServiceProviderOptions());
+        var app = serviceProvider.GetService<BaseApplication>()!;
+        app.Services = serviceProvider;
         app.Initialize(specification);
-        app.Logger.LogTrace("Application created with {Specification}", specification);
         return app;
     }
 }

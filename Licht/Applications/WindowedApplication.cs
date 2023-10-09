@@ -1,22 +1,18 @@
 ﻿using Licht.Core.Graphics;
+using Microsoft.Extensions.Logging;
 
 namespace Licht.Applications;
 
 public class WindowedApplication : BaseApplication
 {
-    private Window _window = null!;
+    private readonly Window _window;
     private readonly IRenderer _renderer;
 
-    public WindowedApplication(IRenderer renderer)
+    public WindowedApplication(ILogger logger, IRenderer renderer, Window window) : base(logger)
     {
         _renderer = renderer;
-    }
-    
-    protected internal override void Initialize(ApplicationSpecification config)
-    {
-        base.Initialize(config); 
+        _window = window;
         
-        _window = new Window(Logger, config.ApplicationName, config.Width, config.Height, config.IsFullscreen);
         _window.Update += Update;
         _window.Render += Render;
     }
@@ -38,7 +34,9 @@ public class WindowedApplication : BaseApplication
     public override void Dispose()
     {
         base.Dispose();
+        
         _window.Update -= Update;
+        _window.Render -= Render;
         _window.Dispose();
         GC.SuppressFinalize(this);
     }

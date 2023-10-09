@@ -152,10 +152,14 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
    
     public void Dispose()
     {
+        vk.DestroyCommandPool(_device, _commandPool, null);
+        vk.DestroyDevice(_device, null);
+        
         _debugUtils.DestroyDebugUtilsMessenger(_instance, _debugMessenger, null);
         _debugUtils.Dispose();
         
         vk.DestroyInstance(_instance, null);
+        vk.Dispose();
     }
     
     [StackTraceHidden]

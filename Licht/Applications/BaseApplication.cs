@@ -1,14 +1,20 @@
-﻿using Licht.Applications.DependencyInjection;
-using Licht.Core;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Licht.Applications;
 
-public abstract class BaseApplication : DiContainer, IApplication
+public abstract class BaseApplication : IApplication
 {
-    protected internal ILogger Logger = null!;
+    protected readonly ILogger Logger;
 
-    protected internal virtual void Initialize(ApplicationSpecification config) => Logger = GetService<ILogger>();
+    internal ServiceProvider Services = null!;
+    
+    protected BaseApplication(ILogger logger)
+    {
+        Logger = logger;
+    }
+
+    protected internal virtual void Initialize(ApplicationSpecification config) => Logger.LogTrace("Application created with {Specification}", config);
 
     public virtual void Run() => Logger.LogTrace("Application running");
 
@@ -21,6 +27,7 @@ public abstract class BaseApplication : DiContainer, IApplication
     public virtual void Dispose()
     {
         Logger.LogTrace("Application exit");
+        Services.Dispose();
         GC.SuppressFinalize(this);
     }
 }

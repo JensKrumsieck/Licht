@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Licht.Vulkan;
 
-public class VkRenderer : IRenderer
+public class VkRenderer : IRenderer, IDisposable
 {
     private readonly ILogger _logger;
     private VkGraphicsDevice _device;
@@ -21,5 +21,10 @@ public class VkRenderer : IRenderer
     public void EndFrame()
     {
         
+    }
+    public void Dispose()
+    {
+        _logger.LogTrace("Dispose claasd");
+        _device.Dispose();
     }
 }

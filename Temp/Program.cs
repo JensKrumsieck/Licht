@@ -1,15 +1,17 @@
-﻿using Licht.Applications;
-using Licht.Core;
+﻿using Licht;
+using Licht.Applications;
 using Licht.Core.Graphics;
 using Licht.Vulkan;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 var opts = ApplicationSpecification.Default;
 
-var appBuilder = new ApplicationBuilder();
-appBuilder.Services.RegisterSingleton<ILogger, Logger>();
-appBuilder.Services.RegisterSingleton<IRenderer, VkRenderer>();
+var builder = new ApplicationBuilder();
+builder.Services.AddSingleton<ILogger, Logger>();
+builder.Services.AddSingleton<IRenderer, VkRenderer>();
+builder.Services.AddSingleton<Window>(l => new Window(l.GetService<ILogger>()!, opts.ApplicationName, opts.Width, opts.Height, opts.IsFullscreen));
 
-using var app = appBuilder.Build<WindowedApplication>(opts);
+using var app = builder.Build<WindowedApplication>(opts);
 
 app.Run();
