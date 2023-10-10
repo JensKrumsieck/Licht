@@ -7,6 +7,8 @@ namespace Licht.Vulkan;
 
 public class VkRenderer : IRenderer, IDisposable
 {
+    public RenderPass? RenderPass => _swapchain?.RenderPass;
+    
     private readonly ILogger? _logger;
     private readonly VkGraphicsDevice _device;
     private readonly VkSurface _surface;
@@ -63,7 +65,8 @@ public class VkRenderer : IRenderer, IDisposable
         }
         if(result != Result.Success && result != Result.SuboptimalKhr) result?.Validate(_logger);
         var cmd = CurrentCommandBuffer;
-        cmd.Begin().Validate(_logger);
+        result = cmd.Begin();
+        if(result != Result.Success) result?.Validate(_logger);
         return cmd;
     }
     
@@ -93,7 +96,8 @@ public class VkRenderer : IRenderer, IDisposable
     
     public void EndFrame()
     {
-        CurrentCommandBuffer.End().Validate(_logger);
+        var result = CurrentCommandBuffer.End();
+        if(result != Result.Success) result.Validate(_logger);
         if (_swapchain!.SubmitCommandBuffers(CurrentCommandBuffer, _currentImageIndex) 
             is Result.ErrorOutOfDateKhr
             or Result.SuboptimalKhr)

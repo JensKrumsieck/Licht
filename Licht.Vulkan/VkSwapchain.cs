@@ -17,7 +17,7 @@ public sealed unsafe class VkSwapchain : IDisposable
     
     private readonly VkGraphicsDevice _device;
     private VkSurface _surface;
-    private Extent2D _extent;
+    private readonly Extent2D _extent;
     private readonly ILogger? _logger;
     
     private readonly SwapchainKHR _swapchain;

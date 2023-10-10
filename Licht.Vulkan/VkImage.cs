@@ -259,7 +259,7 @@ public unsafe class VkImage : IDisposable
 
         //copy data using a staging buffer
         void* mappedData = default;
-        buffer.AllocatedBuffer.Allocation.Map(ref mappedData).Validate();
+        buffer.AllocatedBuffer.Allocation.Map(ref mappedData).Validate(_device.Logger);
         System.Buffer.MemoryCopy(mappedData, destination, size, size);
         buffer.AllocatedBuffer.Allocation.Unmap();
     }

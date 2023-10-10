@@ -22,6 +22,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
     public Instance Instance => _instance;
     public Device Device => _device;
     public Queue MainQueue => _mainQueue;
+    public ILogger? Logger => _logger;
     
     private readonly ILogger? _logger;
     private readonly Instance _instance;
@@ -269,6 +270,10 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         WaitForQueue();
         FreeCommandBuffer(cmd);
     }
+
+    public static implicit operator Device(VkGraphicsDevice d) => d._device;
+    public static implicit operator Instance(VkGraphicsDevice d) => d._instance;
+    public static implicit operator (Instance instance, Device device)(VkGraphicsDevice d) => (d._instance, d._device);
     
     public void Dispose()
     {

@@ -31,10 +31,7 @@ public unsafe class VkBuffer : IDisposable
         return bufferSize;
     }
 
-    public Result Map(ref void* pMappedData, ulong size = Vk.WholeSize, ulong offset = 0)
-    {
-        return AllocatedBuffer.Allocation.Map(ref pMappedData, size, offset);
-    }
+    public Result Map(ref void* pMappedData, ulong size = Vk.WholeSize, ulong offset = 0) => AllocatedBuffer.Allocation.Map(ref pMappedData, size, offset);
     public void Unmap() => AllocatedBuffer.Allocation.Unmap();
 
     public void WriteToBuffer(void* data, void* destination, ulong size = Vk.WholeSize, ulong offset = 0)
@@ -93,9 +90,9 @@ public unsafe class VkBuffer : IDisposable
     {
         var stagingBuffer = new VkBuffer(device, size, BufferUsageFlags.TransferSrcBit, MemoryPropertyFlags.HostVisibleBit);
         var destination = IntPtr.Zero.ToPointer();
-        stagingBuffer.Map(ref destination).Validate();
+        stagingBuffer.Map(ref destination).Validate(device.Logger);
         stagingBuffer.WriteToBuffer(data, destination, size);
-        stagingBuffer.Flush().Validate();
+        stagingBuffer.Flush().Validate(device.Logger);
         stagingBuffer.Unmap();
         return stagingBuffer;
     }

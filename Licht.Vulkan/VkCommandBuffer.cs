@@ -1,4 +1,5 @@
 ﻿using Licht.GraphicsCore.Graphics;
+using Licht.Vulkan.Pipelines;
 using Silk.NET.Vulkan;
 
 namespace Licht.Vulkan;
@@ -34,4 +35,41 @@ public unsafe class VkCommandBuffer : ICommandList
         => vk.CmdCopyBuffer(this, srcBuffer, dstBuffer, 1, &copyRegion);
     public void CopyImageToBuffer(VkImage image, VkBuffer buffer, ImageLayout layout, BufferImageCopy copyRegion) 
         => vk.CmdCopyImageToBuffer(this, image, layout, buffer, 1, copyRegion);
+    public void BindGraphicsPipeline(GraphicsPipeline pipeline) =>
+        vk.CmdBindPipeline(this, PipelineBindPoint.Graphics, pipeline);
+
+    public void BindComputePipeline(GraphicsPipeline pipeline) =>
+        vk.CmdBindPipeline(this, PipelineBindPoint.Compute, pipeline);
+
+    public void BindGraphicsDescriptorSet(DescriptorSet set, ShaderEffect effect) =>
+        vk.CmdBindDescriptorSets(this, PipelineBindPoint.Graphics, effect.EffectLayout, 0, 1, set, 0, null);
+
+    public void BindGraphicsDescriptorSets(DescriptorSet[] sets, ShaderEffect effect)
+    {
+        fixed(DescriptorSet* pSets = sets)
+            vk.CmdBindDescriptorSets(this, PipelineBindPoint.Graphics, effect.EffectLayout, 0, (uint)sets.Length, pSets, 0, null);
+    }
+    public void BindComputeDescriptorSet(DescriptorSet set, ShaderEffect effect) =>
+        vk.CmdBindDescriptorSets(this, PipelineBindPoint.Compute, effect.EffectLayout, 0, 1, set, 0, null);
+
+    public void BindComputeDescriptorSets(DescriptorSet[] sets, ShaderEffect effect)
+    {
+        fixed(DescriptorSet* pSets = sets)
+            vk.CmdBindDescriptorSets(this, PipelineBindPoint.Compute, effect.EffectLayout, 0, (uint)sets.Length, pSets, 0, null);
+    }
+
+
+    public void BindVertexBuffer(Buffer vertexBuffer, ulong vertexOffset = 0) =>
+        vk.CmdBindVertexBuffers(this, 0u, 1, &vertexBuffer, &vertexOffset);
+    public void BindIndexBuffer(Buffer indexBuffer, IndexType indexType) =>
+        vk.CmdBindIndexBuffer(this, indexBuffer, 0, indexType);
+
+    public void PushConstants(ShaderEffect effect, ShaderStageFlags flags, uint offset, uint scale, void* data) =>
+        vk.CmdPushConstants(this, effect.EffectLayout, flags, offset, scale, data);
+    public void Draw(uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance) =>
+        vk.CmdDraw(this, vertexCount, instanceCount, firstVertex, firstInstance);
+    public void DrawIndexed(uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance) =>
+        vk.CmdDrawIndexed(this, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+    public void Dispatch(uint groupCountX, uint groupCountY, uint groupCountZ = 1) =>
+        vk.CmdDispatch(this, groupCountX, groupCountY, groupCountZ);
 }
