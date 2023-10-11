@@ -15,11 +15,12 @@ builder.Services.AddVulkanRenderer();
 //use the simple allocator (the only one yet!)
 builder.Services.AddSingleton<IAllocator, PassthroughAllocator>();
 
-using var app = builder.Build<TriangleApplication>();
+{
+    using var app = builder.Build<TriangleApplication>();
+    app.Run();
+}
 
-app.Run();
-
-class TriangleApplication : WindowedApplication
+sealed class TriangleApplication : WindowedApplication
 {
     private readonly VkGraphicsDevice _device;
     private readonly VkGraphicsPipeline _pipeline;
@@ -38,10 +39,11 @@ class TriangleApplication : WindowedApplication
         cmd.Draw(3, 1, 0, 0);
     }
 
-    public override void Dispose()
+    public override void Release()
     {
-        base.Dispose();
+        _device.WaitIdle();
+        _pipeline.Dispose();        
         _effect.Dispose();
-        _pipeline.Dispose();
+        base.Release();
     }
 }

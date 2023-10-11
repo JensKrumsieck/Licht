@@ -8,6 +8,7 @@ namespace Licht.Vulkan;
 public class VkRenderer : IDisposable
 {
     public RenderPass? RenderPass => _swapchain?.RenderPass;
+    public VkGraphicsDevice Device => _device; 
     
     private readonly ILogger? _logger;
     private readonly VkGraphicsDevice _device;
@@ -106,7 +107,6 @@ public class VkRenderer : IDisposable
     
     public void Dispose()
     {
-        _device.WaitIdle();
         _swapchain?.Dispose();
         _device.FreeCommandBuffers(_commandBuffers);
         GC.SuppressFinalize(this);

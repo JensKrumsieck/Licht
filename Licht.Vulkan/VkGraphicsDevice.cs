@@ -240,7 +240,6 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
 
     public void Dispose()
     {
-        WaitIdle();
         _allocator.Dispose();
         _commandPool.Dispose();
         _device.Dispose();

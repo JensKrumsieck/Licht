@@ -66,7 +66,6 @@ public sealed unsafe class VkGraphicsPipeline : IDisposable
 
     public void Dispose()
     {
-        _device.WaitIdle();
         vk.DestroyPipeline(_device, Pipeline, null);
     }
 }

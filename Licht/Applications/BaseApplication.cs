@@ -6,6 +6,7 @@ namespace Licht.Applications;
 public abstract class BaseApplication : IApplication
 {
     protected readonly ILogger Logger;
+    private bool _isDisposed = false;
 
     internal ServiceProvider Services = null!;
     
@@ -24,10 +25,18 @@ public abstract class BaseApplication : IApplication
     public virtual void Update(float deltaTime){ }
     public virtual void Render(float deltaTime){ }
 
-    public virtual void Dispose()
+    public virtual void Release()
     {
-        Services.Dispose();
+        
+    }
+    
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+        Release();
+        _isDisposed = true;
         Logger.LogTrace("Application exit");
+        Services.Dispose();
         GC.SuppressFinalize(this);
     }
 }

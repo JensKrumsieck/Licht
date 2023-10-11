@@ -38,12 +38,12 @@ public class WindowedApplication : BaseApplication
         //does nothing!
     }
 
-    public override void Dispose()
-    {
-        base.Dispose();
+    public override void Release()
+    { 
+        base.Release();
+        Renderer.Device.WaitIdle();
         Window.Update -= Update;
         Window.Render -= Render;
         Window.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

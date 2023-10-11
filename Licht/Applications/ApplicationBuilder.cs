@@ -12,7 +12,7 @@ public class ApplicationBuilder
     public IApplication Build<T>() where T : BaseApplication
     {
         Services.AddSingleton<BaseApplication, T>();
-        var serviceProvider = Services.BuildServiceProvider(new ServiceProviderOptions{ValidateOnBuild = true,});
+        var serviceProvider = Services.BuildServiceProvider(new ServiceProviderOptions{ValidateOnBuild = true});
         var app = serviceProvider.GetService<BaseApplication>()!;
         app.Services = serviceProvider;
         app.Initialize(_opts);
