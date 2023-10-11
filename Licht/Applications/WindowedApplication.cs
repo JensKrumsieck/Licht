@@ -1,14 +1,15 @@
 ﻿using Licht.Vulkan;
 using Microsoft.Extensions.Logging;
+using Silk.NET.Windowing;
 
 namespace Licht.Applications;
 
 public class WindowedApplication : BaseApplication
 {
-    protected readonly Window Window;
+    protected readonly IWindow Window;
     protected readonly VkRenderer Renderer;
 
-    public WindowedApplication(ILogger logger, VkRenderer renderer, Window window) : base(logger)
+    public WindowedApplication(ILogger logger, VkRenderer renderer, IWindow window) : base(logger)
     {
         Renderer = renderer;
         Window = window;
@@ -41,9 +42,7 @@ public class WindowedApplication : BaseApplication
     public override void Release()
     { 
         base.Release();
-        Renderer.Device.WaitIdle();
         Window.Update -= Update;
         Window.Render -= Render;
-        Window.Dispose();
     }
 }

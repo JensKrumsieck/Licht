@@ -2,6 +2,8 @@
 using Licht.GraphicsCore;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Core.Contexts;
+using Silk.NET.Maths;
+using Silk.NET.Windowing;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -9,9 +11,13 @@ public static class DependencyInjectionExtensions
 {
     public static void AddWindow(this ServiceCollection collection, ApplicationSpecification opts)
     {
-        collection.AddSingleton<Window>(l => new Window(l.GetService<ILogger>()!, opts.ApplicationName, opts.Width, opts.Height, opts.IsFullscreen));
-        collection.AddSingleton<IWindowProvider>(p => p.GetService<Window>()!);
-        collection.AddSingleton<IVkSurfaceSource>(p => p.GetService<Window>()!);
-        collection.AddSingleton<IGLContextSource>(p => p.GetService<Window>()!);
+        var options = WindowOptions.DefaultVulkan with
+        {
+            Size = new Vector2D<int>(opts.Width, opts.Height),
+            WindowState = opts.IsFullscreen ? WindowState.Fullscreen : WindowState.Normal
+        };
+        var window = Window.Create(options);
+        window.Initialize();
+        collection.AddSingleton(window);
     }
 }

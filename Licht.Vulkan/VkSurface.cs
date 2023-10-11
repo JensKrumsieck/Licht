@@ -3,6 +3,7 @@ using Silk.NET.Core.Contexts;
 using Silk.NET.Core.Native;
 using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.KHR;
+using Silk.NET.Windowing;
 
 namespace Licht.Vulkan;
 
@@ -11,7 +12,7 @@ public sealed unsafe class VkSurface : IDisposable
     private readonly VkGraphicsDevice _device;
     private readonly KhrSurface _khrSurface;
     private readonly Silk.NET.Vulkan.SurfaceKHR _surface;
-    public VkSurface(VkGraphicsDevice device, IVkSurfaceSource surfaceProvider, ILogger? logger = null)
+    public VkSurface(VkGraphicsDevice device, IWindow surfaceProvider, ILogger? logger = null)
     {
         _device = device;
         if(!vk.TryGetInstanceExtension(_device.Instance, out _khrSurface)) 

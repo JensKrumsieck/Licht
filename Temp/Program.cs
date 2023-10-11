@@ -5,15 +5,16 @@ using Licht.Vulkan.Memory;
 using Licht.Vulkan.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Silk.NET.Windowing;
 
 var opts = ApplicationSpecification.Default;
 var builder = new ApplicationBuilder(opts);
 
 builder.Services.AddSingleton<ILogger, Logger>();
 builder.Services.AddWindow(opts);
-builder.Services.AddVulkanRenderer();
 //use the simple allocator (the only one yet!)
 builder.Services.AddSingleton<IAllocator, PassthroughAllocator>();
+builder.Services.AddVulkanRenderer();
 
 {
     using var app = builder.Build<TriangleApplication>();
@@ -25,7 +26,7 @@ sealed class TriangleApplication : WindowedApplication
     private readonly VkGraphicsDevice _device;
     private readonly VkGraphicsPipeline _pipeline;
     private readonly ShaderEffect _effect;
-    public TriangleApplication(ILogger logger, VkGraphicsDevice device, Window window, VkRenderer renderer) : base(logger, renderer, window)
+    public TriangleApplication(ILogger logger, VkGraphicsDevice device, IWindow window, VkRenderer renderer) : base(logger, renderer, window)
     {
         _device = device;
         var passDescription = ShaderPassDescription.Default();

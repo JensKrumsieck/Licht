@@ -25,17 +25,14 @@ public abstract class BaseApplication : IApplication
     public virtual void Update(float deltaTime){ }
     public virtual void Render(float deltaTime){ }
 
-    public virtual void Release()
-    {
-        
-    }
+    public virtual void Release() { }
     
     public void Dispose()
     {
         if (_isDisposed) return;
-        Release();
         _isDisposed = true;
         Logger.LogTrace("Application exit");
+        Release();
         Services.Dispose();
         GC.SuppressFinalize(this);
     }

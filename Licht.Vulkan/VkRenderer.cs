@@ -2,6 +2,7 @@
 using Licht.Vulkan.Extensions;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;
+using Silk.NET.Windowing;
 
 namespace Licht.Vulkan;
 
@@ -13,7 +14,7 @@ public class VkRenderer : IDisposable
     private readonly ILogger? _logger;
     private readonly VkGraphicsDevice _device;
     private readonly VkSurface _surface;
-    private readonly IWindowProvider _windowProvider;
+    private readonly IWindow _window;
     private readonly CommandBuffer[] _commandBuffers;
     
     private uint _currentImageIndex;
@@ -28,23 +29,23 @@ public class VkRenderer : IDisposable
     
     public CommandBuffer CurrentCommandBuffer => _commandBuffers[_currentFrameIndex];
     
-    public VkRenderer(VkGraphicsDevice device, IWindowProvider windowProvider, VkSurface surface, ILogger? logger = null)
+    public VkRenderer(VkGraphicsDevice device, IWindow window, VkSurface surface, ILogger? logger = null)
     {
         _logger = logger;
         _device = device;
         _surface = surface;
-        _windowProvider = windowProvider;
+        _window = window;
         RecreateSwapchain();
         _commandBuffers = _device.AllocateCommandBuffers((uint) _swapchain!.ImageCount);
     }
 
     private void RecreateSwapchain()
     {
-        var extent = new Extent2D((uint) _windowProvider.Window.FramebufferSize.X, (uint) _windowProvider.Window.FramebufferSize.Y);
+        var extent = new Extent2D((uint) _window.FramebufferSize.X, (uint) _window.FramebufferSize.Y);
         while (extent.Width == 0 || extent.Height == 0)
         {
-            extent = new Extent2D((uint) _windowProvider.Window.FramebufferSize.X, (uint) _windowProvider.Window.FramebufferSize.Y);
-            _windowProvider.Window.DoEvents();
+            extent = new Extent2D((uint) _window.FramebufferSize.X, (uint) _window.FramebufferSize.Y);
+            _window.DoEvents();
         }
         _device.WaitIdle();
         if (_swapchain is null) _swapchain = new VkSwapchain(_logger, _device, _surface, extent);
