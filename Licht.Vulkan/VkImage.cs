@@ -10,8 +10,8 @@ public unsafe class VkImage : IDisposable
     private readonly VkGraphicsDevice _device;
 
     private AllocatedImage _allocatedImage;
-    private ImageView _imageView;
-    private Sampler _sampler;
+    private ImageView _imageView = null!;
+    private Sampler _sampler = null!;
     public Extent3D ImageExtent => new(Width, Height, 1);
 
     public uint Width { get; private set; }
@@ -97,7 +97,7 @@ public unsafe class VkImage : IDisposable
             Format = ImageFormat,
             SubresourceRange = new ImageSubresourceRange(ImageAspectFlags.ColorBit, 0, 1, 0, 1)
         };
-        _imageView = _device.CreateImageView(imageViewInfo);
+        _imageView = new ImageView(_device, imageViewInfo);
 
         var samplerCreateInfo = new SamplerCreateInfo
         {
@@ -112,7 +112,7 @@ public unsafe class VkImage : IDisposable
             MaxLod = 1000,
             MaxAnisotropy = 1.0f
         };
-        _sampler = _device.CreateSampler(samplerCreateInfo);
+        _sampler = new Sampler(_device, samplerCreateInfo);
     }
 
     public void SetData(void* data)
@@ -272,14 +272,14 @@ public unsafe class VkImage : IDisposable
         AllocateImage();
     }
 
-    public static implicit operator Image(VkImage i) => i._allocatedImage.Image;
+    public static implicit operator Silk.NET.Vulkan.Image(VkImage i) => i._allocatedImage.Image;
 
     public void Dispose()
     {
         _device.WaitIdle();
         _device.DestroyImage(_allocatedImage);
-        _device.DestroyImageView(_imageView);
-        _device.DestroySampler(_sampler);
+        _imageView.Dispose();
+        _sampler.Dispose();
         GC.SuppressFinalize(this);
     }
 }

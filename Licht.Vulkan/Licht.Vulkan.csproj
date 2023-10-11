@@ -16,6 +16,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Licht.GraphicsCore\Licht.GraphicsCore.csproj" />
+        <ProjectReference Include="..\Licht.Vulkan.Generator\Licht.Vulkan.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
 </Project>

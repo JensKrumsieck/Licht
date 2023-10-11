@@ -36,7 +36,7 @@ public readonly struct ShaderStage
         var shaderCode = File.ReadAllBytes(path);
         return FromBytes(device, shaderCode);
     }
-    private static unsafe ShaderModule FromUInts(Device device, uint[] shaderCode)
+    private static unsafe ShaderModule FromUInts(VkGraphicsDevice device, uint[] shaderCode)
     {
         fixed (uint* pShaderCode = shaderCode)
         {

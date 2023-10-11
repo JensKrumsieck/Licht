@@ -107,7 +107,7 @@ public unsafe class VkBuffer : IDisposable
     
     public DescriptorBufferInfo DescriptorInfo(ulong size = Vk.WholeSize, ulong offset = 0) => new(AllocatedBuffer.Buffer, offset, size);
 
-    public static implicit operator Buffer(VkBuffer b) => b.AllocatedBuffer.Buffer;
+    public static implicit operator Silk.NET.Vulkan.Buffer(VkBuffer b) => b.AllocatedBuffer.Buffer;
 
     public void Dispose()
     {

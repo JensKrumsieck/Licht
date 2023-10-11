@@ -23,7 +23,7 @@ public sealed unsafe class VkSwapchain : IDisposable
     private readonly SwapchainKHR _swapchain;
     private readonly KhrSwapchain _khrSwapchain;
 
-    private readonly Image[] _swapchainImages;
+    private readonly Silk.NET.Vulkan.Image[] _swapchainImages;
     private readonly ImageView[] _swapchainImageViews;
     private readonly Format _imageFormat;
     
@@ -41,7 +41,7 @@ public sealed unsafe class VkSwapchain : IDisposable
     
     private int _currentFrame = 0;
     
-    public VkSwapchain(ILogger? logger, VkGraphicsDevice device, VkSurface surface, Extent2D windowExtent, SwapchainKHR? oldSwapchain = null)
+    public VkSwapchain(ILogger? logger, VkGraphicsDevice device, VkSurface surface, Extent2D windowExtent, Silk.NET.Vulkan.SwapchainKHR? oldSwapchain = null)
     {
         _device = device;
         _extent = windowExtent;
@@ -76,13 +76,12 @@ public sealed unsafe class VkSwapchain : IDisposable
             Clipped = true,
             OldSwapchain = oldSwapchain??default
         };
-        if(!vk.TryGetDeviceExtension(_device.Instance, _device.Device, out _khrSwapchain))
-            _logger?.LogError("Device extension not found: {Extension}", KhrSwapchain.ExtensionName);
-        _khrSwapchain.CreateSwapchain(_device.Device, createInfo, null, out _swapchain).Validate(_logger);
-        
+        _swapchain = new SwapchainKHR(_device.Instance, device.Device, createInfo);
+        //already checked in ctor!
+        vk.TryGetDeviceExtension(_device.Instance, device.Device, out _khrSwapchain);
         _khrSwapchain.GetSwapchainImages(_device.Device, _swapchain, &imageCount, null).Validate(_logger);
-        _swapchainImages = new Image[imageCount];
-        fixed(Image* pSwapchainImages = _swapchainImages)
+        _swapchainImages = new Silk.NET.Vulkan.Image[imageCount];
+        fixed(Silk.NET.Vulkan.Image* pSwapchainImages = _swapchainImages)
             _khrSwapchain.GetSwapchainImages(_device.Device, _swapchain, &imageCount, pSwapchainImages).Validate(_logger);
 
         _imageFormat = format.Format;
@@ -99,8 +98,7 @@ public sealed unsafe class VkSwapchain : IDisposable
         for (var i = 0; i < imageCount; i++)
         {
             viewInfo.Image = _swapchainImages[i];
-            vk.CreateImageView(_device.Device, viewInfo, null, out var imageView).Validate(_logger);
-            _swapchainImageViews[i] = imageView;
+            _swapchainImageViews[i] = new ImageView(_device.Device, viewInfo);
         }
         
         _depthFormat = device.FindFormat(new[] {Format.D32Sfloat, Format.D32SfloatS8Uint, Format.D24UnormS8Uint},
@@ -136,8 +134,7 @@ public sealed unsafe class VkSwapchain : IDisposable
             var image = _device.CreateImage(imageInfo, MemoryPropertyFlags.DeviceLocalBit);
             _depthImages[i] = image;
             viewInfo.Image = image.Image;
-            vk.CreateImageView(_device.Device, viewInfo, null, out var view).Validate(_logger);
-            _depthImageViews[i] = view;
+            _depthImageViews[i] = new ImageView(_device.Device, viewInfo);
         }
         
         _imagesInFlight = new Fence[ImageCount];
@@ -150,12 +147,9 @@ public sealed unsafe class VkSwapchain : IDisposable
             {SType = StructureType.FenceCreateInfo, Flags = FenceCreateFlags.SignaledBit};
         for (var i = 0; i < MaxImagesInFlight; i++)
         {
-            vk.CreateSemaphore(_device.Device, semaphoreInfo, null, out var availableSemaphore).Validate(_logger);
-            vk.CreateSemaphore(_device.Device, semaphoreInfo, null, out var finishedSemaphore).Validate(_logger);
-            vk.CreateFence(_device.Device, fenceInfo, null, out var fence).Validate(_logger);
-            _imageAvailableSemaphores[i] = availableSemaphore;
-            _renderFinishedSemaphores[i] = finishedSemaphore;
-            _inFlightFences[i] = fence;
+            _imageAvailableSemaphores[i] = new Semaphore(_device.Device, semaphoreInfo);
+            _renderFinishedSemaphores[i] = new Semaphore(_device.Device, semaphoreInfo);
+            _inFlightFences[i] = new Fence(_device.Device, fenceInfo);
         }
         
          //renderPass
@@ -233,7 +227,7 @@ public sealed unsafe class VkSwapchain : IDisposable
     
     private Framebuffer CreateFramebuffer(int i)
     {
-        var attachments = stackalloc[] {_swapchainImageViews[i], _depthImageViews[i]};
+        var attachments = stackalloc Silk.NET.Vulkan.ImageView[] {_swapchainImageViews[i], _depthImageViews[i]};
         var createInfo = new FramebufferCreateInfo
         {
             SType = StructureType.FramebufferCreateInfo,
@@ -258,7 +252,7 @@ public sealed unsafe class VkSwapchain : IDisposable
     
     public Result SubmitCommandBuffers(VkCommandBuffer cmd, uint imageIndex)
     {
-        if (_imagesInFlight[imageIndex].Handle != 0) _device.WaitForFence(_imagesInFlight[imageIndex]);
+        if (_imagesInFlight[imageIndex] is not null) _device.WaitForFence(_imagesInFlight[imageIndex]);
         _imagesInFlight[imageIndex] = _imagesInFlight[_currentFrame];
         var waitSemaphores = _imageAvailableSemaphores[_currentFrame];
         var signalSemaphores = _renderFinishedSemaphores[_currentFrame];
@@ -268,12 +262,12 @@ public sealed unsafe class VkSwapchain : IDisposable
         {
             SType = StructureType.SubmitInfo,
             WaitSemaphoreCount = 1,
-            PWaitSemaphores = &waitSemaphores,
+            PWaitSemaphores = waitSemaphores,
             PWaitDstStageMask = &waitStages,
             CommandBufferCount = 1,
             PCommandBuffers = &current,
             SignalSemaphoreCount = 1,
-            PSignalSemaphores = &signalSemaphores
+            PSignalSemaphores = signalSemaphores
         };
         _device.ResetFence(_inFlightFences[_currentFrame]);
         _device.SubmitMainQueue(submitInfo, _inFlightFences[_currentFrame]);
@@ -289,15 +283,15 @@ public sealed unsafe class VkSwapchain : IDisposable
         {
             SType = StructureType.PresentInfoKhr,
             WaitSemaphoreCount = 1,
-            PWaitSemaphores = &waitSemaphore,
+            PWaitSemaphores = waitSemaphore,
             SwapchainCount = 1,
-            PSwapchains = &swapchain,
+            PSwapchains = swapchain,
             PImageIndices = &imageIndex
         };
         return _khrSwapchain.QueuePresent(_device.MainQueue, presentInfo);
     }
 
-    public static implicit operator SwapchainKHR(VkSwapchain s) => s._swapchain;
+    public static implicit operator Silk.NET.Vulkan.SwapchainKHR(VkSwapchain s) => s._swapchain;
     
     private static SurfaceFormatKHR SelectFormat(SurfaceFormatKHR[] formats)
     {
@@ -325,9 +319,9 @@ public sealed unsafe class VkSwapchain : IDisposable
         vk.DestroyRenderPass(_device.Device, RenderPass, null);
         for (var i = 0; i < _swapchainImages.Length; i++)
         {
-            vk.DestroyImageView(_device.Device, _swapchainImageViews[i], null);
-            vk.DestroyImage(_device.Device, _depthImages[i].Image, null);
-            vk.DestroyImageView(_device.Device, _depthImageViews[i], null);
+            _swapchainImageViews[i].Dispose();
+            _depthImages[i].Image.Dispose();
+            _depthImageViews[i].Dispose();
             _depthImages[i].Allocation.Dispose();
             vk.DestroyFramebuffer(_device.Device, Framebuffers[i], null);
         }
@@ -340,15 +334,15 @@ public sealed unsafe class VkSwapchain : IDisposable
         
         for (var i = 0; i < MaxImagesInFlight; i++)
         {
-            vk.DestroyFence(_device.Device, _inFlightFences[i], null);
-            vk.DestroySemaphore(_device.Device, _imageAvailableSemaphores[i], null);
-            vk.DestroySemaphore(_device.Device, _renderFinishedSemaphores[i], null);
+            _inFlightFences[i].Dispose();
+            _imageAvailableSemaphores[i].Dispose();
+            _renderFinishedSemaphores[i].Dispose();
         }
         Array.Clear(_inFlightFences);
         Array.Clear(_imageAvailableSemaphores);
         Array.Clear(_renderFinishedSemaphores);
-        
-        _khrSwapchain.DestroySwapchain(_device.Device, _swapchain, null);
+
+        _swapchain.Dispose();
         _khrSwapchain.Dispose();
     }
 }

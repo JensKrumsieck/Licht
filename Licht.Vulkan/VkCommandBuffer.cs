@@ -9,7 +9,7 @@ public unsafe class VkCommandBuffer : ICommandList
     private readonly CommandBuffer _commandBuffer;
 
     internal VkCommandBuffer(CommandBuffer cmd) => _commandBuffer = cmd;
-    
+
     public static implicit operator CommandBuffer(VkCommandBuffer cmd) => cmd._commandBuffer;
     public Result Begin()
     {
@@ -60,7 +60,7 @@ public unsafe class VkCommandBuffer : ICommandList
 
 
     public void BindVertexBuffer(Buffer vertexBuffer, ulong vertexOffset = 0) =>
-        vk.CmdBindVertexBuffers(this, 0u, 1, &vertexBuffer, &vertexOffset);
+        vk.CmdBindVertexBuffers(this, 0u, 1, vertexBuffer, &vertexOffset);
     public void BindIndexBuffer(Buffer indexBuffer, IndexType indexType) =>
         vk.CmdBindIndexBuffer(this, indexBuffer, 0, indexType);
 

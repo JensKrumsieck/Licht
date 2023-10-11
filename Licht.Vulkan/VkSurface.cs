@@ -10,19 +10,19 @@ public sealed unsafe class VkSurface : IDisposable
 {
     private readonly VkGraphicsDevice _device;
     private readonly KhrSurface _khrSurface;
-    private readonly SurfaceKHR _surface;
+    private readonly Silk.NET.Vulkan.SurfaceKHR _surface;
     public VkSurface(VkGraphicsDevice device, IVkSurfaceSource surfaceProvider, ILogger? logger = null)
     {
         _device = device;
         if(!vk.TryGetInstanceExtension(_device.Instance, out _khrSurface)) 
             logger?.LogError($"Could not find instance extension {KhrSurface.ExtensionName}");
         _surface = surfaceProvider.VkSurface!
-            .Create<AllocationCallbacks>(new VkHandle(_device.Instance.Handle), null)
+            .Create<AllocationCallbacks>(new VkHandle((nint)_device.Instance.Handle), null)
             .ToSurface();
         logger?.LogTrace("VkSurface created");
     }
     
-    public (SurfaceCapabilitiesKHR capabilities, SurfaceFormatKHR[] formats, PresentModeKHR[] presentModes) GetSwapchainSupport(PhysicalDevice physicalDevice)
+    public (SurfaceCapabilitiesKHR capabilities, SurfaceFormatKHR[] formats, PresentModeKHR[] presentModes) GetSwapchainSupport(Silk.NET.Vulkan.PhysicalDevice physicalDevice)
     {
         _khrSurface.GetPhysicalDeviceSurfaceCapabilities(physicalDevice, _surface, out var capabilities);
         var count = 0u;
@@ -36,7 +36,7 @@ public sealed unsafe class VkSurface : IDisposable
         return (capabilities, formats, presentModes);
     }
 
-    public static implicit operator SurfaceKHR(VkSurface s) => s._surface;
+    public static implicit operator Silk.NET.Vulkan.SurfaceKHR(VkSurface s) => s._surface;
     
     public void Dispose()
     {

@@ -1,6 +1,5 @@
 ﻿global using static Licht.Vulkan.VkGraphicsDevice;
-global using Semaphore = Silk.NET.Vulkan.Semaphore;
-global using Buffer = Silk.NET.Vulkan.Buffer;
+global using Semaphore = Licht.Vulkan.Semaphore;
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -36,8 +35,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
     
     private readonly ExtDebugUtils _debugUtils;
     
-    
-    public VkGraphicsDevice(IAllocator allocator, ILogger? logger = null)
+        public VkGraphicsDevice(IAllocator allocator, ILogger? logger = null)
     {
         _logger = logger;
         _allocator = allocator;
@@ -95,7 +93,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
             PNext = &debugInfo,
 #endif
         };
-        vk.CreateInstance(instanceInfo, null, out _instance).Validate(_logger);
+        _instance = new Instance(instanceInfo);
         _logger?.LogDebug("Enabled Layers: {Layers}", string.Join(", ", enabledLayers));
         _logger?.LogDebug("Enabled Instance Extensions: {InstanceExtensions}", string.Join(", ", enabledInstanceExtensions));
         
@@ -156,7 +154,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
             QueueCreateInfoCount = 1,
             PQueueCreateInfos = &queueInfo
         };
-        vk.CreateDevice(_physicalDevice, deviceInfo, null, out _device).Validate(_logger);
+        _device = new Device(_physicalDevice, deviceInfo);
         _logger?.LogDebug("Enabled Device Extensions: {DeviceExtensions}", string.Join(", ", enabledDeviceExtensions));
         vk.GetDeviceQueue(_device, _mainQueueIndex, 0, out _mainQueue);
 
@@ -167,8 +165,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
             //TODO: find out what these flags actually mean
             Flags = CommandPoolCreateFlags.TransientBit | CommandPoolCreateFlags.ResetCommandBufferBit
         };
-        vk.CreateCommandPool(_device, poolInfo, null, out _commandPool).Validate(_logger);
-        
+        _commandPool = new CommandPool(_device, poolInfo);
         //bind to allocator
         allocator.Bind(this);
     }
@@ -180,7 +177,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
     public Result SubmitMainQueue(SubmitInfo submitInfo, Fence fence) => vk.QueueSubmit(_mainQueue, 1, submitInfo, fence);
     public VkCommandBuffer[] AllocateCommandBuffers(uint count)
     {
-        var commandBuffers = new CommandBuffer[count];
+        var commandBuffers = new Silk.NET.Vulkan.CommandBuffer[count];
         var allocInfo = new CommandBufferAllocateInfo
         {
             SType = StructureType.CommandBufferAllocateInfo,
@@ -188,8 +185,8 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
             CommandPool = _commandPool,
             CommandBufferCount = count
         };
-        fixed (void* pCommandBuffers = commandBuffers)
-            vk.AllocateCommandBuffers(_device, allocInfo, (CommandBuffer*)pCommandBuffers).Validate(_logger);
+        fixed (Silk.NET.Vulkan.CommandBuffer* pCommandBuffers = commandBuffers)
+            vk.AllocateCommandBuffers(_device, allocInfo, pCommandBuffers).Validate(_logger);
         var vkCommandBuffers = new VkCommandBuffer[count];
         for (var i = 0; i < vkCommandBuffers.Length; i++) vkCommandBuffers[i] = new VkCommandBuffer(commandBuffers[i]);
         return vkCommandBuffers;
@@ -214,7 +211,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
     }
     public AllocatedImage CreateImage(ImageCreateInfo info, MemoryPropertyFlags propertyFlags)
     {
-        vk.CreateImage(_device, info, null, out var image).Validate(_logger);
+        var image = new Image(_device, info);
         var allocInfo = new AllocationCreateInfo {Usage = propertyFlags};
         _allocator.AllocateImage(image, allocInfo, out var allocation);
         return new AllocatedImage(image, allocation);
@@ -224,18 +221,6 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         vk.DestroyImage(_device, image.Image, null);
         image.Allocation.Dispose();
     }
-    public ImageView CreateImageView(ImageViewCreateInfo info)
-    {
-        vk.CreateImageView(_device, info, null, out var imageView).Validate(_logger);
-        return imageView;
-    }
-    public void DestroyImageView(ImageView view) => vk.DestroyImageView(_device, view, null);
-    public Sampler CreateSampler(SamplerCreateInfo createInfo)
-    {
-        vk.CreateSampler(_device, createInfo, default, out var sampler).Validate(_logger);
-        return sampler;
-    }
-    public void DestroySampler(Sampler sampler) => vk.DestroySampler(_device, sampler, null);
     public AllocatedBuffer CreateBuffer(ulong bufferSize, BufferUsageFlags usageFlags, MemoryPropertyFlags memoryFlags)
     {
         var bufferInfo = new BufferCreateInfo
@@ -245,7 +230,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
             Usage = usageFlags,
             SharingMode = SharingMode.Exclusive
         };
-        vk.CreateBuffer(_device, bufferInfo, null, out var buffer).Validate(_logger);
+        var buffer = new Buffer(_device, bufferInfo);
         var allocInfo = new AllocationCreateInfo {Usage = memoryFlags};
         _allocator.AllocateBuffer(buffer, allocInfo, out var allocation);
         return new AllocatedBuffer(buffer, allocation);
@@ -259,7 +244,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
     public void EndSingleTimeCommands(VkCommandBuffer cmd)
     {
         cmd.End();
-        var commandBuffer = (CommandBuffer) cmd;
+        var commandBuffer = (CommandBuffer)cmd;
         var submitInfo = new SubmitInfo
         {
             SType = StructureType.SubmitInfo,
@@ -272,20 +257,19 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
     }
 
     public static implicit operator Device(VkGraphicsDevice d) => d._device;
-    public static implicit operator Instance(VkGraphicsDevice d) => d._instance;
-    public static implicit operator (Instance instance, Device device)(VkGraphicsDevice d) => (d._instance, d._device);
-    
+    public static implicit operator Silk.NET.Vulkan.Device(VkGraphicsDevice d) => d._device;
+
     public void Dispose()
     {
         WaitIdle();
         _allocator.Dispose();
         vk.DestroyCommandPool(_device, _commandPool, null);
-        vk.DestroyDevice(_device, null);
+        _device.Dispose();
         
         _debugUtils.DestroyDebugUtilsMessenger(_instance, _debugMessenger, null);
         _debugUtils.Dispose();
-        
-        vk.DestroyInstance(_instance, null);
+
+        _instance.Dispose();
         vk.Dispose();
     }
     
