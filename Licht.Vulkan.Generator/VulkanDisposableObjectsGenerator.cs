@@ -1,20 +1,14 @@
 ﻿using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using static Licht.Vulkan.Generator.Constants;
 
 namespace Licht.Vulkan.Generator;
 
 [Generator]
-public class VulkanObjectsGenerator : ISourceGenerator
+public class VulkanDisposableObjectsGenerator : ISourceGenerator
 {
-    private const string Indent = "    ";
-    private static string Space(int spacers)
-    {
-        var res = new StringBuilder();
-        for (var i = 0; i < spacers; i++)
-            res.Append(Indent);
-        return res.ToString();
-    }
+    
 
     private readonly string[] _types = 
     {
@@ -29,7 +23,7 @@ public class VulkanObjectsGenerator : ISourceGenerator
         "Semaphore",
         "ShaderModule",
         "PipelineLayout",
-        "SurfaceKHR",
+        "PhysicalDevice",
         "SwapchainKHR"
     };
     
@@ -38,12 +32,10 @@ public class VulkanObjectsGenerator : ISourceGenerator
     public void Execute(GeneratorExecutionContext context)
     {
         //load vulkan assembly
-        var references = context.Compilation.GetUsedAssemblyReferences();
-        var vk = references.First(s => s.Display.Contains("Silk.NET.Vulkan.dll"));
-        var asm = (IAssemblySymbol)context.Compilation.GetAssemblyOrModuleSymbol(vk);
-        var api = asm.GetTypeByMetadataName("Silk.NET.Vulkan.Vk");
+        var api = context.LoadVulkan();
 
         //load khr extensions
+        var references = context.Compilation.GetUsedAssemblyReferences();
         var vkKhr = references.First(s => s.Display.Contains("Silk.NET.Vulkan.Extensions.KHR.dll"));
         var asmKhr = (IAssemblySymbol)context.Compilation.GetAssemblyOrModuleSymbol(vkKhr);
 
@@ -70,15 +62,12 @@ public class VulkanObjectsGenerator : ISourceGenerator
             var sb = new StringBuilder($@"using Silk.NET.Vulkan;
 namespace Licht.Vulkan
 {{
-    public unsafe partial class {type} {(creationMethod is not null ? ": IDisposable" : "")}
+    public unsafe readonly partial struct {type} {(creationMethod is not null ? ": IDisposable" : "")}
     {{
         private readonly Silk.NET.Vulkan.{type} _{LcF(type)};
-        public ulong Handle => (ulong) _{LcF(type)}.Handle;
+        public readonly ulong Handle => (ulong) _{LcF(type)}.Handle;
         public static implicit operator Silk.NET.Vulkan.{type}({type} t) => t._{LcF(type)};
-        public static implicit operator Silk.NET.Vulkan.{type}*({type} t) {{
-            fixed(Silk.NET.Vulkan.{type}* pointer = &t._{LcF(type)}) 
-                return pointer;
-        }}
+        public static implicit operator Silk.NET.Vulkan.{type}*({type} t) => &t._{LcF(type)};
 ");
             if (creationMethod is not null)
             {
@@ -116,6 +105,4 @@ namespace Licht.Vulkan
             context.AddSource($"{type}_generated.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
         }        
     }
-
-    private static string LcF(string input) => char.ToLower(input[0]) + input.Substring(1);
 }

@@ -35,8 +35,11 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
     private readonly CommandPool _commandPool;
     
     private readonly ExtDebugUtils _debugUtils;
-    
-        public VkGraphicsDevice(IAllocator allocator, ILogger? logger = null)
+
+    public static implicit operator Device(VkGraphicsDevice d) => d._device;
+    public static implicit operator Silk.NET.Vulkan.Device(VkGraphicsDevice d) => d._device;
+
+    public VkGraphicsDevice(IAllocator allocator, ILogger? logger = null)
     {
         _logger = logger;
         _allocator = allocator;
@@ -104,14 +107,8 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         _debugUtils.CreateDebugUtilsMessenger(_instance, debugInfo, null, out _debugMessenger).Validate(_logger);
 #endif
 
-        var devices = vk.GetPhysicalDevices(_instance);
-        _physicalDevice = devices.FirstOrDefault(gpu =>
-        {
-            vk.GetPhysicalDeviceProperties(gpu, out var p);
-            return p.DeviceType == PhysicalDeviceType.DiscreteGpu;
-        });
-        if (_physicalDevice.Handle == 0) _physicalDevice = devices.First();
-        vk.GetPhysicalDeviceProperties(_physicalDevice, out var properties);
+        _physicalDevice = _instance.SelectPhysicalDevice();
+        var properties = _physicalDevice.GetProperties();
         _logger?.LogDebug("{DeviceName}", new ByteString(properties.DeviceName));
 
         var enabledDeviceExtensions = new List<string>{ KhrSwapchain.ExtensionName };
@@ -120,12 +117,8 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         var pPEnabledDeviceExtensions = new ByteStringList(enabledDeviceExtensions);
 
         var defaultPriority = 1.0f;
-        var queueFamilyCount = 0u;
-        vk.GetPhysicalDeviceQueueFamilyProperties(_physicalDevice, ref queueFamilyCount, null);
-        _logger?.LogTrace("Found {QueueFamilyCount} device queues", queueFamilyCount);
-        var queueFamilies = new QueueFamilyProperties[queueFamilyCount];
-        fixed (QueueFamilyProperties* pQueueFamilies = queueFamilies)
-            vk.GetPhysicalDeviceQueueFamilyProperties(_physicalDevice, ref queueFamilyCount, pQueueFamilies);
+        var queueFamilies = _physicalDevice.GetQueueFamilyProperties();
+        var queueFamilyCount = queueFamilies.Length;
 
         //TODO: separate queues for different tasks?
         for (var i = 0u; i < queueFamilyCount; i++)
@@ -176,7 +169,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
     public Result WaitForQueue() => vk.QueueWaitIdle(_mainQueue);
     public Result ResetFence(Fence fence) => vk.ResetFences(_device, 1, fence);
     public Result SubmitMainQueue(SubmitInfo submitInfo, Fence fence) => vk.QueueSubmit(_mainQueue, 1, submitInfo, fence);
-    public VkCommandBuffer[] AllocateCommandBuffers(uint count)
+    public CommandBuffer[] AllocateCommandBuffers(uint count)
     {
         var commandBuffers = new Silk.NET.Vulkan.CommandBuffer[count];
         var allocInfo = new CommandBufferAllocateInfo
@@ -188,28 +181,16 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         };
         fixed (Silk.NET.Vulkan.CommandBuffer* pCommandBuffers = commandBuffers)
             vk.AllocateCommandBuffers(_device, allocInfo, pCommandBuffers).Validate(_logger);
-        var vkCommandBuffers = new VkCommandBuffer[count];
-        for (var i = 0; i < vkCommandBuffers.Length; i++) vkCommandBuffers[i] = new VkCommandBuffer(commandBuffers[i]);
+        var vkCommandBuffers = new CommandBuffer[count];
+        for (var i = 0; i < vkCommandBuffers.Length; i++) vkCommandBuffers[i] = commandBuffers[i];
         return vkCommandBuffers;
     }
-    public void FreeCommandBuffers(VkCommandBuffer[] commandBuffers) =>
+    public void FreeCommandBuffers(CommandBuffer[] commandBuffers) =>
         vk.FreeCommandBuffers(_device, _commandPool, (uint) commandBuffers.Length,
-            Array.ConvertAll(commandBuffers, cmd => (CommandBuffer) cmd));
+            Array.ConvertAll(commandBuffers, cmd => (Silk.NET.Vulkan.CommandBuffer) cmd));
     public void FreeCommandBuffer(CommandBuffer commandBuffer) =>
         vk.FreeCommandBuffers(_device, _commandPool, 1, commandBuffer);
-    public Format FindFormat(Format[] candidates, ImageTiling tiling, FormatFeatureFlags formatFeatureFlags)
-    {
-        foreach (var candidate in candidates)
-        {
-            vk.GetPhysicalDeviceFormatProperties(_physicalDevice, candidate, out var props);
-            if (tiling == ImageTiling.Linear && (props.LinearTilingFeatures & formatFeatureFlags) == formatFeatureFlags)
-                return candidate;
-            if (tiling == ImageTiling.Optimal && (props.OptimalTilingFeatures & formatFeatureFlags) == formatFeatureFlags)
-                return candidate;
-        }
-        _logger?.LogError("Unable to find supported format for {Tiling} and {FormatFeatureFlags}", tiling, formatFeatureFlags);
-        throw new Exception($"Unable to find supported format for {tiling} and {formatFeatureFlags}");
-    }
+    public Format FindFormat(Format[] candidates, ImageTiling tiling, FormatFeatureFlags formatFeatureFlags) => _physicalDevice.FindFormat(candidates, tiling, formatFeatureFlags);
     public AllocatedImage CreateImage(ImageCreateInfo info, MemoryPropertyFlags propertyFlags)
     {
         var image = new Image(_device, info);
@@ -236,16 +217,16 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         _allocator.AllocateBuffer(buffer, allocInfo, out var allocation);
         return new AllocatedBuffer(buffer, allocation);
     }
-    public VkCommandBuffer BeginSingleTimeCommands()
+    public CommandBuffer BeginSingleTimeCommands()
     {
         var cmd = AllocateCommandBuffers(1)[0];
         cmd.Begin();
         return cmd;
     }
-    public void EndSingleTimeCommands(VkCommandBuffer cmd)
+    public void EndSingleTimeCommands(CommandBuffer cmd)
     {
         cmd.End();
-        var commandBuffer = (CommandBuffer)cmd;
+        var commandBuffer = (Silk.NET.Vulkan.CommandBuffer)cmd;
         var submitInfo = new SubmitInfo
         {
             SType = StructureType.SubmitInfo,
@@ -257,14 +238,11 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         FreeCommandBuffer(cmd);
     }
 
-    public static implicit operator Device(VkGraphicsDevice d) => d._device;
-    public static implicit operator Silk.NET.Vulkan.Device(VkGraphicsDevice d) => d._device;
-
     public void Dispose()
     {
         WaitIdle();
         _allocator.Dispose();
-        vk.DestroyCommandPool(_device, _commandPool, null);
+        _commandPool.Dispose();
         _device.Dispose();
         
         _debugUtils.DestroyDebugUtilsMessenger(_instance, _debugMessenger, null);

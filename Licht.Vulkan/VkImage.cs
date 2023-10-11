@@ -10,8 +10,8 @@ public unsafe class VkImage : IDisposable
     private readonly VkGraphicsDevice _device;
 
     private AllocatedImage _allocatedImage;
-    private ImageView _imageView = null!;
-    private Sampler _sampler = null!;
+    private ImageView _imageView;
+    private Sampler _sampler;
     public Extent3D ImageExtent => new(Width, Height, 1);
 
     public uint Width { get; private set; }
@@ -138,7 +138,7 @@ public unsafe class VkImage : IDisposable
         _device.EndSingleTimeCommands(cmd);
     }
 
-    public void TransitionLayout(VkCommandBuffer cmd, ImageLayout newLayout, uint mipLevels, uint layerCount)
+    public void TransitionLayout(CommandBuffer cmd, ImageLayout newLayout, uint mipLevels, uint layerCount)
     {
         var range = new ImageSubresourceRange(ImageAspectFlags.ColorBit, 0, mipLevels, 0, layerCount);
         var barrierInfo = new ImageMemoryBarrier
@@ -224,7 +224,7 @@ public unsafe class VkImage : IDisposable
             TransitionLayoutImmediate(ImageLayout.General, mipLevels, layerCount);
     }
 
-    public void CopyToBuffer(VkCommandBuffer cmd, VkBuffer buffer, uint layerCount)
+    public void CopyToBuffer(CommandBuffer cmd, VkBuffer buffer, uint layerCount)
     {
         var layers = new ImageSubresourceLayers(ImageAspectFlags.ColorBit, 0, 0, layerCount);
         var copyRegion = new BufferImageCopy(0, 0, 0, layers, default, ImageExtent);

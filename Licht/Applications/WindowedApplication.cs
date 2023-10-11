@@ -33,7 +33,7 @@ public class WindowedApplication : BaseApplication
         Renderer.EndFrame();
     }
 
-    public virtual void DrawFrame(VkCommandBuffer cmd, float deltaTime)
+    public virtual void DrawFrame(CommandBuffer cmd, float deltaTime)
     {
         //does nothing!
     }

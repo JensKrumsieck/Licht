@@ -19,7 +19,7 @@ public unsafe class VkBuffer : IDisposable
     {
         _device = device;
         _size = size;
-        vk.GetPhysicalDeviceProperties(_device.PhysicalDevice, out var props);
+        var props = _device.PhysicalDevice.GetProperties();
         if (usageFlags == BufferUsageFlags.UniformBufferBit) _size = GetAlignment(_size, props.Limits.MinUniformBufferOffsetAlignment);
         else _size = GetAlignment(_size, 256);
         AllocatedBuffer = _device.CreateBuffer(_size, usageFlags, memoryFlags);

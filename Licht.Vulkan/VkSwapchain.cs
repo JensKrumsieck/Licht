@@ -250,14 +250,14 @@ public sealed unsafe class VkSwapchain : IDisposable
             default, ref imageIndex);
     }
     
-    public Result SubmitCommandBuffers(VkCommandBuffer cmd, uint imageIndex)
+    public Result SubmitCommandBuffers(CommandBuffer cmd, uint imageIndex)
     {
-        if (_imagesInFlight[imageIndex] is not null) _device.WaitForFence(_imagesInFlight[imageIndex]);
+        if (_imagesInFlight[imageIndex].Handle != 0) _device.WaitForFence(_imagesInFlight[imageIndex]);
         _imagesInFlight[imageIndex] = _imagesInFlight[_currentFrame];
         var waitSemaphores = _imageAvailableSemaphores[_currentFrame];
         var signalSemaphores = _renderFinishedSemaphores[_currentFrame];
         var waitStages = PipelineStageFlags.ColorAttachmentOutputBit;
-        var current = (CommandBuffer) cmd;
+        var current = (Silk.NET.Vulkan.CommandBuffer) cmd;
         var submitInfo = new SubmitInfo
         {
             SType = StructureType.SubmitInfo,

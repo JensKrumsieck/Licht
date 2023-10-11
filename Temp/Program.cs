@@ -32,7 +32,7 @@ class TriangleApplication : WindowedApplication
         _pipeline = new VkGraphicsPipeline(_device, _effect, passDescription, default, Renderer.RenderPass!.Value);
     }
 
-    public override void DrawFrame(VkCommandBuffer cmd, float deltaTime)
+    public override void DrawFrame(CommandBuffer cmd, float deltaTime)
     {
         cmd.BindGraphicsPipeline(_pipeline);
         cmd.Draw(3, 1, 0, 0);

@@ -13,7 +13,7 @@ public class VkRenderer : IDisposable
     private readonly VkGraphicsDevice _device;
     private readonly VkSurface _surface;
     private readonly IWindowProvider _windowProvider;
-    private readonly VkCommandBuffer[] _commandBuffers;
+    private readonly CommandBuffer[] _commandBuffers;
     
     private uint _currentImageIndex;
     private int _currentFrameIndex;
@@ -25,7 +25,7 @@ public class VkRenderer : IDisposable
         new() {DepthStencil = new ClearDepthStencilValue(1f, 0u)}
     };
     
-    public VkCommandBuffer CurrentCommandBuffer => _commandBuffers[_currentFrameIndex];
+    public CommandBuffer CurrentCommandBuffer => _commandBuffers[_currentFrameIndex];
     
     public VkRenderer(VkGraphicsDevice device, IWindowProvider windowProvider, VkSurface surface, ILogger? logger = null)
     {
@@ -55,7 +55,7 @@ public class VkRenderer : IDisposable
         }
     }
     
-    public VkCommandBuffer BeginFrame()
+    public CommandBuffer BeginFrame()
     {
         var result = _swapchain?.AcquireNextImage(ref _currentImageIndex);
         if (result == Result.ErrorOutOfDateKhr)
@@ -70,9 +70,8 @@ public class VkRenderer : IDisposable
         return cmd;
     }
     
-    public unsafe void BeginRenderPass(VkCommandBuffer cmd)
+    public unsafe void BeginRenderPass(CommandBuffer cmd)
     {
-        var commandBuffer = (VkCommandBuffer) cmd;
         fixed (ClearValue* pClearValues = _clearValues)
         {
             var beginInfo = new RenderPassBeginInfo
@@ -84,15 +83,15 @@ public class VkRenderer : IDisposable
                 ClearValueCount = (uint) _clearValues.Length,
                 PClearValues = pClearValues
             };
-            commandBuffer.BeginRenderPass(beginInfo);
+            cmd.BeginRenderPass(beginInfo);
             var viewport = new Viewport(0, 0, _swapchain.Extent.Width, _swapchain.Extent.Height, 0, 1);
             var scissor = new Rect2D {Offset = {X = 0, Y = 0}, Extent = _swapchain.Extent};
-            commandBuffer.SetViewport(viewport);
-            commandBuffer.SetScissor(scissor);
+            cmd.SetViewport(viewport);
+            cmd.SetScissor(scissor);
         }
     }
 
-    public void EndRenderPass(VkCommandBuffer cmd) => cmd.EndRenderPass();
+    public void EndRenderPass(CommandBuffer cmd) => cmd.EndRenderPass();
     
     public void EndFrame()
     {
