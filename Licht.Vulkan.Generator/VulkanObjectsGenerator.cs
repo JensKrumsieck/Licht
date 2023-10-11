@@ -27,6 +27,8 @@ public class VulkanObjectsGenerator : ISourceGenerator
         "ImageView",
         "Fence",
         "Semaphore",
+        "ShaderModule",
+        "PipelineLayout",
         "SurfaceKHR",
         "SwapchainKHR"
     };

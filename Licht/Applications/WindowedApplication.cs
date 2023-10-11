@@ -1,39 +1,39 @@
-﻿using Licht.GraphicsCore.Graphics;
+﻿using Licht.Vulkan;
 using Microsoft.Extensions.Logging;
 
 namespace Licht.Applications;
 
 public class WindowedApplication : BaseApplication
 {
-    private readonly Window _window;
-    private readonly IRenderer _renderer;
+    protected readonly Window Window;
+    protected readonly VkRenderer Renderer;
 
-    public WindowedApplication(ILogger logger, IRenderer renderer, Window window) : base(logger)
+    public WindowedApplication(ILogger logger, VkRenderer renderer, Window window) : base(logger)
     {
-        _renderer = renderer;
-        _window = window;
+        Renderer = renderer;
+        Window = window;
         
-        _window.Update += Update;
-        _window.Render += Render;
+        Window.Update += Update;
+        Window.Render += Render;
     }
 
     public override void Run()
     {
         base.Run();
-        _window.Run();
+        Window.Run();
     }
 
     public override void Render(float deltaTime)
     {
         base.Render(deltaTime);
-        var cmd = _renderer.BeginFrame();
-        _renderer.BeginRenderPass(cmd);
+        var cmd = Renderer.BeginFrame();
+        Renderer.BeginRenderPass(cmd);
         DrawFrame(cmd, deltaTime);
-        _renderer.EndRenderPass(cmd);
-        _renderer.EndFrame();
+        Renderer.EndRenderPass(cmd);
+        Renderer.EndFrame();
     }
 
-    public virtual void DrawFrame(ICommandList cmd, float deltaTime)
+    public virtual void DrawFrame(VkCommandBuffer cmd, float deltaTime)
     {
         //does nothing!
     }
@@ -41,9 +41,9 @@ public class WindowedApplication : BaseApplication
     public override void Dispose()
     {
         base.Dispose();
-        _window.Update -= Update;
-        _window.Render -= Render;
-        _window.Dispose();
+        Window.Update -= Update;
+        Window.Render -= Render;
+        Window.Dispose();
         GC.SuppressFinalize(this);
     }
 }

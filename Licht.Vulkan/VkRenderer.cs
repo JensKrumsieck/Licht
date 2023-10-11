@@ -1,11 +1,11 @@
-﻿using Licht.GraphicsCore.Graphics;
+﻿using Licht.GraphicsCore;
 using Licht.Vulkan.Extensions;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;
 
 namespace Licht.Vulkan;
 
-public class VkRenderer : IRenderer, IDisposable
+public class VkRenderer : IDisposable
 {
     public RenderPass? RenderPass => _swapchain?.RenderPass;
     
@@ -55,7 +55,7 @@ public class VkRenderer : IRenderer, IDisposable
         }
     }
     
-    public ICommandList BeginFrame()
+    public VkCommandBuffer BeginFrame()
     {
         var result = _swapchain?.AcquireNextImage(ref _currentImageIndex);
         if (result == Result.ErrorOutOfDateKhr)
@@ -70,7 +70,7 @@ public class VkRenderer : IRenderer, IDisposable
         return cmd;
     }
     
-    public unsafe void BeginRenderPass(ICommandList cmd)
+    public unsafe void BeginRenderPass(VkCommandBuffer cmd)
     {
         var commandBuffer = (VkCommandBuffer) cmd;
         fixed (ClearValue* pClearValues = _clearValues)
@@ -92,7 +92,7 @@ public class VkRenderer : IRenderer, IDisposable
         }
     }
 
-    public void EndRenderPass(ICommandList cmd) => ((VkCommandBuffer)cmd).EndRenderPass();
+    public void EndRenderPass(VkCommandBuffer cmd) => cmd.EndRenderPass();
     
     public void EndFrame()
     {

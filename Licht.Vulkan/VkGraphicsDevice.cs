@@ -1,5 +1,6 @@
 ﻿global using static Licht.Vulkan.VkGraphicsDevice;
 global using Semaphore = Licht.Vulkan.Semaphore;
+global using Buffer = Licht.Vulkan.Buffer;
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;

@@ -1,5 +1,4 @@
 ﻿using Licht.GraphicsCore;
-using Licht.Vulkan.Extensions;
 using Silk.NET.Vulkan;
 
 namespace Licht.Vulkan.Pipelines;
@@ -46,8 +45,7 @@ public readonly struct ShaderStage
                 CodeSize = (nuint) shaderCode.Length * sizeof(uint),
                 PCode = pShaderCode,
             };
-            vk.CreateShaderModule(device, createInfo, null, out var module);
-            return module;
+            return new ShaderModule(device, createInfo);
         }
     }
     
@@ -61,8 +59,7 @@ public readonly struct ShaderStage
                 CodeSize = (nuint) shaderBytes.Length,
                 PCode = (uint*) pShaderCode,
             };
-            vk.CreateShaderModule(device, createInfo, null, out var module).Validate(device.Logger);
-            return module;
+            return new ShaderModule(device, createInfo);
         }
     }
 }

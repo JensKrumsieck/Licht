@@ -3,13 +3,13 @@ using Silk.NET.Vulkan;
 
 namespace Licht.Vulkan.Pipelines;
 
-public sealed unsafe class GraphicsPipeline : IDisposable
+public sealed unsafe class VkGraphicsPipeline : IDisposable
 {
     private readonly VkGraphicsDevice _device;
     public readonly ShaderEffect Effect;
     public readonly Pipeline Pipeline;
     public PipelineLayout Layout => Effect.EffectLayout;
-    public GraphicsPipeline(VkGraphicsDevice device, ShaderEffect effect, ShaderPassDescription description,
+    public VkGraphicsPipeline(VkGraphicsDevice device, ShaderEffect effect, ShaderPassDescription description,
         VertexInfo vertexInfo, RenderPass pass)
     {
         _device = device;
@@ -61,8 +61,8 @@ public sealed unsafe class GraphicsPipeline : IDisposable
             vk.CreateGraphicsPipelines(device, default, 1, createInfo, null, out Pipeline).Validate(_device.Logger);
         }
     }
-
-    public static implicit operator Pipeline(GraphicsPipeline p) => p.Pipeline;
+    
+    public static implicit operator Pipeline(VkGraphicsPipeline p) => p.Pipeline;
 
     public void Dispose()
     {

@@ -1,10 +1,9 @@
-﻿using Licht.GraphicsCore.Graphics;
-using Licht.Vulkan.Pipelines;
+﻿using Licht.Vulkan.Pipelines;
 using Silk.NET.Vulkan;
 
 namespace Licht.Vulkan;
 
-public unsafe class VkCommandBuffer : ICommandList
+public unsafe class VkCommandBuffer
 {
     private readonly CommandBuffer _commandBuffer;
 
@@ -35,10 +34,10 @@ public unsafe class VkCommandBuffer : ICommandList
         => vk.CmdCopyBuffer(this, srcBuffer, dstBuffer, 1, &copyRegion);
     public void CopyImageToBuffer(VkImage image, VkBuffer buffer, ImageLayout layout, BufferImageCopy copyRegion) 
         => vk.CmdCopyImageToBuffer(this, image, layout, buffer, 1, copyRegion);
-    public void BindGraphicsPipeline(GraphicsPipeline pipeline) =>
-        vk.CmdBindPipeline(this, PipelineBindPoint.Graphics, pipeline);
+    
+    public void BindGraphicsPipeline(VkGraphicsPipeline pipeline) => vk.CmdBindPipeline(this, PipelineBindPoint.Graphics, pipeline);
 
-    public void BindComputePipeline(GraphicsPipeline pipeline) =>
+    public void BindComputePipeline(VkGraphicsPipeline pipeline) => //TODO: wrong!
         vk.CmdBindPipeline(this, PipelineBindPoint.Compute, pipeline);
 
     public void BindGraphicsDescriptorSet(DescriptorSet set, ShaderEffect effect) =>

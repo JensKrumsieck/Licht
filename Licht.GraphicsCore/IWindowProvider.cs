@@ -1,6 +1,6 @@
 ﻿using Silk.NET.Windowing;
 
-namespace Licht.GraphicsCore.Graphics;
+namespace Licht.GraphicsCore;
 
 public interface IWindowProvider
 {

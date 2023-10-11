@@ -66,8 +66,7 @@ public readonly unsafe struct ShaderEffect : IDisposable
                 PushConstantRangeCount = pushRange.StageFlags != ShaderStageFlags.None ? 1 : 0u,
                 PPushConstantRanges = &pushRange
             };
-            vk.CreatePipelineLayout(device, layoutInfo, null, out var pipelineLayout).Validate(device.Logger);
-            return pipelineLayout;
+            return new PipelineLayout(device, layoutInfo);
         }
     }
     
