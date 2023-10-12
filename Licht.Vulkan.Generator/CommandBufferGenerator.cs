@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
-using static Licht.Vulkan.Generator.Constants;
+using static Licht.Vulkan.Generator.GeneratorUtilities;
 
 namespace Licht.Vulkan.Generator;
 
@@ -20,17 +20,17 @@ namespace Licht.Vulkan
 {{
     public unsafe readonly partial struct {type}
     {{
-        private readonly Silk.NET.Vulkan.{type} _{LcF(type)};
-        public readonly ulong Handle => (ulong) _{LcF(type)}.Handle;
-        public static implicit operator Silk.NET.Vulkan.{type}({type} t) => t._{LcF(type)};
+        private readonly Silk.NET.Vulkan.{type} _{type.LowerCaseFirst()};
+        public readonly ulong Handle => (ulong) _{type.LowerCaseFirst()}.Handle;
+        public static implicit operator Silk.NET.Vulkan.{type}({type} t) => t._{type.LowerCaseFirst()};
         public static implicit operator {type}(Silk.NET.Vulkan.{type} t) => new(t);
-        public static implicit operator Silk.NET.Vulkan.{type}*({type} t) => &t._{LcF(type)};
-        public {type} (Silk.NET.Vulkan.{type} vkStruct) => _{LcF(type)} = vkStruct;
+        public static implicit operator Silk.NET.Vulkan.{type}*({type} t) => &t._{type.LowerCaseFirst()};
+        public {type} (Silk.NET.Vulkan.{type} vkStruct) => _{type.LowerCaseFirst()} = vkStruct;
 ");
         foreach(var symbol in cmdMethods)
         {
-            var parameters = symbol.Parameters.Skip(1); //skip cmd parameter
-            var args = parameters.Select(s => (s.RefKind != RefKind.None ? LcF(s.RefKind.ToString()) + " " : "") + s.Name).Select(s => s == "event" ? "@event" : s);
+            var parameters = symbol.Parameters.Skip(1).ToList(); //skip cmd parameter
+            var args = parameters.Select(s => (s.RefKind != RefKind.None ? s.RefKind.ToString().LowerCaseFirst() + " " : "") + s.Name).Select(s => s == "event" ? "@event" : s);
             var definitions = parameters.Select(s => s.OriginalDefinition.ToDisplayString());
             var methodName = symbol.Name.Substring(3);
             var typeDefs = symbol.IsGenericMethod ? "<" + string.Join(", ", symbol.TypeParameters) + ">" : "";

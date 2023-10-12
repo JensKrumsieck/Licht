@@ -13,6 +13,7 @@ public readonly unsafe struct Surface : IDisposable
     private readonly ulong Handle => _surface.Handle;
 
     public static implicit operator SurfaceKHR(Surface s) => s._surface;
+    public static implicit operator SurfaceKHR*(Surface s) => &s._surface;
 
     public Surface(Instance instance, IVkSurfaceSource surfaceSource)
     {

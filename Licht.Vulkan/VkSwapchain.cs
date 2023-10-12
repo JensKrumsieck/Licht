@@ -23,7 +23,7 @@ public sealed unsafe class VkSwapchain : IDisposable
     private readonly SwapchainKHR _swapchain;
     private readonly KhrSwapchain _khrSwapchain;
 
-    private readonly Silk.NET.Vulkan.Image[] _swapchainImages;
+    private readonly Image[] _swapchainImages;
     private readonly ImageView[] _swapchainImageViews;
     private readonly Format _imageFormat;
     
@@ -80,10 +80,11 @@ public sealed unsafe class VkSwapchain : IDisposable
         //already checked in ctor!
         vk.TryGetDeviceExtension(_device.Instance, device.Device, out _khrSwapchain);
         _khrSwapchain.GetSwapchainImages(_device.Device, _swapchain, &imageCount, null).Validate(_logger);
-        _swapchainImages = new Silk.NET.Vulkan.Image[imageCount];
-        fixed(Silk.NET.Vulkan.Image* pSwapchainImages = _swapchainImages)
+        var images = new Silk.NET.Vulkan.Image[imageCount];
+        fixed(Silk.NET.Vulkan.Image* pSwapchainImages = images)
             _khrSwapchain.GetSwapchainImages(_device.Device, _swapchain, &imageCount, pSwapchainImages).Validate(_logger);
-
+        _swapchainImages = Array.ConvertAll(images, i => new Image(_device.Device, i));
+        
         _imageFormat = format.Format;
         _extent = extent;
 
@@ -238,8 +239,7 @@ public sealed unsafe class VkSwapchain : IDisposable
             Height = _extent.Height,
             Layers = 1
         };
-        vk.CreateFramebuffer(_device.Device, createInfo, null, out var framebuffer).Validate(_logger);
-        return framebuffer;
+        return new Framebuffer(_device, createInfo);
     }
 
     public Result AcquireNextImage(ref uint imageIndex)
@@ -323,7 +323,7 @@ public sealed unsafe class VkSwapchain : IDisposable
             _depthImages[i].Image.Dispose();
             _depthImageViews[i].Dispose();
             _depthImages[i].Allocation.Dispose();
-            vk.DestroyFramebuffer(_device.Device, Framebuffers[i], null);
+            Framebuffers[i].Dispose();
         }
         Array.Clear(_swapchainImages);
         Array.Clear(_swapchainImageViews);
