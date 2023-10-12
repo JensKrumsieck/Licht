@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Text;
 using Microsoft.CodeAnalysis;
 
 namespace Licht.Vulkan.Generator;
@@ -17,11 +19,18 @@ public static class Constants
 
     public static INamedTypeSymbol LoadVulkan(this GeneratorExecutionContext context)
     {
-        //load vulkan assembly
-        var references = context.Compilation.GetUsedAssemblyReferences();
-        var vk = references.First(s => s.Display.Contains("Silk.NET.Vulkan.dll"));
-        var asm = (IAssemblySymbol)context.Compilation.GetAssemblyOrModuleSymbol(vk);
-        var api = asm.GetTypeByMetadataName("Silk.NET.Vulkan.Vk");
+        var vk = context.Compilation.ExternalReferences.GetReferenceByString("Silk.NET.Vulkan.dll");
+        var assembly = (IAssemblySymbol)context.Compilation.GetAssemblyOrModuleSymbol(vk)!;
+        var api = assembly.GetTypeByMetadataName("Silk.NET.Vulkan.Vk");
         return api;
+    }
+
+    public static PortableExecutableReference GetReferenceByString(this ImmutableArray<MetadataReference> haystack, string needle)
+    {
+        return haystack.Where(s => s is PortableExecutableReference)
+                        .Cast<PortableExecutableReference>()
+                        .FirstOrDefault(
+                                r => r.GetMetadata() is AssemblyMetadata asmMetaData 
+                                && asmMetaData.GetModules()[0].Name == needle);
     }
 }

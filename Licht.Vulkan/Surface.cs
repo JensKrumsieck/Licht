@@ -9,10 +9,10 @@ public readonly unsafe struct Surface : IDisposable
 {
     private readonly Instance _instance;
     private readonly KhrSurface _khrSurface;
-    private readonly Silk.NET.Vulkan.SurfaceKHR _surface;
+    private readonly SurfaceKHR _surface;
     private readonly ulong Handle => _surface.Handle;
 
-    public static implicit operator Silk.NET.Vulkan.SurfaceKHR(Surface s) => s._surface;
+    public static implicit operator SurfaceKHR(Surface s) => s._surface;
 
     public Surface(Instance instance, IVkSurfaceSource surfaceSource)
     {
@@ -21,6 +21,20 @@ public readonly unsafe struct Surface : IDisposable
         _surface = surfaceSource.VkSurface!
             .Create<AllocationCallbacks>(new VkHandle((nint)_instance.Handle), null)
             .ToSurface();
+    }
+    
+    public (SurfaceCapabilitiesKHR capabilities, SurfaceFormatKHR[] formats, PresentModeKHR[] presentModes) GetSwapchainSupport(Silk.NET.Vulkan.PhysicalDevice physicalDevice)
+    {
+        _khrSurface.GetPhysicalDeviceSurfaceCapabilities(physicalDevice, _surface, out var capabilities);
+        var count = 0u;
+        _khrSurface.GetPhysicalDeviceSurfaceFormats(physicalDevice, _surface, &count, null);
+        var formats = new SurfaceFormatKHR[count];
+        _khrSurface.GetPhysicalDeviceSurfaceFormats(physicalDevice, _surface, &count, formats);
+
+        _khrSurface.GetPhysicalDeviceSurfacePresentModes(physicalDevice, _surface, &count, null);
+        var presentModes = new PresentModeKHR[count];
+        _khrSurface.GetPhysicalDeviceSurfacePresentModes(physicalDevice, _surface, &count, presentModes);
+        return (capabilities, formats, presentModes);
     }
 
     public void Dispose()

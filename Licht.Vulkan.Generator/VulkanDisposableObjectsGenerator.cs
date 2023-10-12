@@ -35,9 +35,8 @@ public class VulkanDisposableObjectsGenerator : ISourceGenerator
         var api = context.LoadVulkan();
 
         //load khr extensions
-        var references = context.Compilation.GetUsedAssemblyReferences();
-        var vkKhr = references.First(s => s.Display.Contains("Silk.NET.Vulkan.Extensions.KHR.dll"));
-        var asmKhr = (IAssemblySymbol)context.Compilation.GetAssemblyOrModuleSymbol(vkKhr);
+        var vkKhr = context.Compilation.ExternalReferences.GetReferenceByString("Silk.NET.Vulkan.Extensions.KHR.dll");
+        var asmKhr = (IAssemblySymbol)context.Compilation.GetAssemblyOrModuleSymbol(vkKhr)!;
 
         foreach (var type in _types)
         {
