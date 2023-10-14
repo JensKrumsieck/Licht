@@ -1,47 +1,48 @@
-﻿using Catalyze;
-using Catalyze.Allocation;
-using Catalyze.Applications;
-using Catalyze.Pipeline;
+﻿using Licht.Applications;
+using Licht.Core;
+using Licht.Vulkan;
+using Licht.Vulkan.Memory;
+using Licht.Vulkan.Pipelines;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Silk.NET.Windowing;
-using TriangleExample;
 
-var builder = Application.CreateBuilder();
-builder.Services.AddWindowing(WindowOptions.DefaultVulkan);
-builder.Services.RegisterSingleton<IAllocator, PassthroughAllocator>();
+var opts = ApplicationSpecification.Default;
+var builder = new ApplicationBuilder(opts);
 
-var app = builder.Build();
-app.UseVulkan(new GraphicsDeviceCreateOptions());
-app.AttachLayer<ExampleAppLayer>();
-app.Run();
-app.Dispose();
+builder.Services.AddSingleton<ILogger, Logger>();
+builder.Services.AddWindow(opts);
+builder.Services.AddVulkanRenderer<PassthroughAllocator>();
 
-namespace TriangleExample
 {
-    internal class ExampleAppLayer : IAppLayer
+    using var app = builder.Build<TriangleApplication>();
+    app.Run();
+}
+
+sealed class TriangleApplication : WindowedApplication
+{
+    private readonly VkGraphicsDevice _device;
+    private readonly VkGraphicsPipeline _pipeline;
+    private readonly ShaderEffect _effect;
+    public TriangleApplication(ILogger logger, VkGraphicsDevice device, IWindow window, VkRenderer renderer) : base(logger, renderer, window)
     {
-        private Renderer _renderer = null!;
-        private ShaderEffect _shaderEffect;
-        private ShaderPass _shaderPass;
-    
-        public void OnAttach()
-        {
-            _renderer = Application.GetInstance().GetModule<Renderer>()!;
-            _shaderEffect = ShaderEffect.BuildEffect(_renderer.Device.VkDevice, "./Shaders/triShader.vert.spv",
-                "./Shaders/triShader.frag.spv", null);
-            var passInfo = ShaderPassInfo.Default();
-            _shaderPass = new ShaderPass(_renderer.Device.VkDevice, _shaderEffect, passInfo, default, _renderer.RenderPass);
-        }
+        _device = device;
+        var passDescription = ShaderPassDescription.Default();
+        _effect = ShaderEffect.BuildEffect(_device, "./assets/shaders/triangle.vert.spv", "./assets/shaders/triangle.frag.spv", null);
+        _pipeline = new VkGraphicsPipeline(_device, _effect, passDescription, default, Renderer.RenderPass!.Value);
+    }
 
-        public void OnUpdate(double deltaTime)
-        {
-            _renderer.CurrentCommandBuffer.BindGraphicsPipeline(_shaderPass);
-            _renderer.CurrentCommandBuffer.Draw(3, 1, 0, 0);
-        }
+    public override void DrawFrame(CommandBuffer cmd, float deltaTime)
+    {
+        cmd.BindGraphicsPipeline(_pipeline);
+        cmd.Draw(3, 1, 0, 0);
+    }
 
-        public void OnDetach()
-        {
-            _shaderEffect.Dispose();
-            _shaderPass.Dispose();
-        }
+    public override void Release()
+    {
+        _device.WaitIdle();
+        _pipeline.Dispose();        
+        _effect.Dispose();
+        base.Release();
     }
 }
