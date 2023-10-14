@@ -14,13 +14,14 @@ public static class GeneratorUtilities
             res.Append(Indent);
         return res.ToString();
     }
-    
-    public static string LowerCaseFirst(this string input) => char.ToLower(input[0]) + input.Substring(1);
+
+    public static string LowerCaseFirst(this string input) => input == "" ? "" : char.ToLower(input[0]) + input.Substring(1);
 
     public static void AppendExtensionLoad(this StringBuilder sb, bool deviceExtension, string apiName)
     {
+        var ext = apiName.StartsWith("Khr") ? "KHR" : "EXT";
         sb.AppendLine($"{Space(3)}if(!vk.TryGet{(deviceExtension ? "Device" : "Instance")}Extension(_instance, {(deviceExtension ? "_device," : "")} out _{apiName.LowerCaseFirst()}))");
-        sb.AppendLine($"{Space(4)}throw new ApplicationException($\"Could not get extension {{Silk.NET.Vulkan.Extensions.KHR.{apiName}.ExtensionName}}\");");
+        sb.AppendLine($"{Space(4)}throw new ApplicationException($\"Could not get extension {{Silk.NET.Vulkan.Extensions.{ext}.{apiName}.ExtensionName}}\");");
     }
 
     public static void AppendDependencies(this StringBuilder sb, bool useInstance, bool useDevice)
@@ -37,9 +38,9 @@ public static class GeneratorUtilities
         return api!;
     }
 
-    public static IAssemblySymbol LoadKhrAssembly(this GeneratorExecutionContext context)
+    public static IAssemblySymbol LoadExtensionAssembly(this GeneratorExecutionContext context, string type)
     {
-        var vk = context.Compilation.ExternalReferences.GetReferenceByString("Silk.NET.Vulkan.Extensions.KHR.dll")!;
+        var vk = context.Compilation.ExternalReferences.GetReferenceByString($"Silk.NET.Vulkan.Extensions.{type}.dll")!;
         return (IAssemblySymbol)context.Compilation.GetAssemblyOrModuleSymbol(vk)!;
     }
 

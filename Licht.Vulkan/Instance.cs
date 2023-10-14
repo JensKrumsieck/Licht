@@ -16,5 +16,5 @@ public readonly partial struct Instance
         return gpu;
     }
 
-    public Surface CreateSurface(IVkSurfaceSource surfaceSource) => new Surface(this, surfaceSource);
+    public SurfaceKHR CreateSurface(IVkSurfaceSource surfaceSource) => new SurfaceKHR(this, surfaceSource);
 }

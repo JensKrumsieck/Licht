@@ -33,8 +33,6 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
     private readonly Queue _mainQueue;
     private readonly uint _mainQueueIndex;
     private readonly CommandPool _commandPool;
-    
-    private readonly ExtDebugUtils _debugUtils;
 
     public static implicit operator Device(VkGraphicsDevice d) => d._device;
     public static implicit operator Silk.NET.Vulkan.Device(VkGraphicsDevice d) => d._device;
@@ -102,9 +100,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         _logger?.LogDebug("Enabled Instance Extensions: {InstanceExtensions}", string.Join(", ", enabledInstanceExtensions));
         
 #if LGRAPHICSDEBUG
-        if(!vk.TryGetInstanceExtension(_instance, out _debugUtils))
-            _logger?.LogError($"Could not get instance extension {ExtDebugUtils.ExtensionName}!");
-        _debugUtils.CreateDebugUtilsMessenger(_instance, debugInfo, null, out _debugMessenger).Validate(_logger);
+        _debugMessenger = new DebugUtilsMessengerEXT(_instance, debugInfo);
 #endif
 
         _physicalDevice = _instance.SelectPhysicalDevice();
@@ -242,9 +238,8 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
     {
         _commandPool.Dispose();
         _device.Dispose();
-        
-        _debugUtils.DestroyDebugUtilsMessenger(_instance, _debugMessenger, null);
-        _debugUtils.Dispose();
+
+        _debugMessenger.Dispose();
 
         _instance.Dispose();
         vk.Dispose();

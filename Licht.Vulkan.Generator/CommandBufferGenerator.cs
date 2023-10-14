@@ -13,7 +13,6 @@ public class CommandBufferGenerator : ISourceGenerator
     {
         //load vulkan assembly
         var api = context.LoadVulkan();
-        var cmdMethods = api.GetMembers().Where(s => s.Name.StartsWith("Cmd")).Select(s => (IMethodSymbol)s);
         var type = "CommandBuffer";
         var sb = new StringBuilder($@"using Silk.NET.Vulkan;
 namespace Licht.Vulkan
@@ -27,7 +26,8 @@ namespace Licht.Vulkan
         public static implicit operator Silk.NET.Vulkan.{type}*({type} t) => &t._{type.LowerCaseFirst()};
         public {type} (Silk.NET.Vulkan.{type} vkStruct) => _{type.LowerCaseFirst()} = vkStruct;
 ");
-        foreach(var symbol in cmdMethods)
+        var cmdMethods = api.GetMembers().Where(s => s.Name.StartsWith("Cmd")).Select(s => (IMethodSymbol)s);
+        foreach (var symbol in cmdMethods)
         {
             var parameters = symbol.Parameters.Skip(1).ToList(); //skip cmd parameter
             var args = parameters.Select(s => (s.RefKind != RefKind.None ? s.RefKind.ToString().LowerCaseFirst() + " " : "") + s.Name).Select(s => s == "event" ? "@event" : s);
