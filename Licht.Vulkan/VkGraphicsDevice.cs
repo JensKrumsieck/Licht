@@ -146,7 +146,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         };
         _device = new Device(_physicalDevice, deviceInfo);
         _logger?.LogDebug("Enabled Device Extensions: {DeviceExtensions}", string.Join(", ", enabledDeviceExtensions));
-        vk.GetDeviceQueue(_device, _mainQueueIndex, 0, out _mainQueue);
+        _mainQueue = _device.GetQueue(_mainQueueIndex);
 
         var poolInfo = new CommandPoolCreateInfo
         {
@@ -160,79 +160,19 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         allocator.Bind(this);
     }
 
-    public void WaitIdle() => vk.DeviceWaitIdle(_device);
-    public void WaitForFence(Fence fence) => vk.WaitForFences(_device, 1u, fence, true, ulong.MaxValue);
-    public Result WaitForQueue() => vk.QueueWaitIdle(_mainQueue);
-    public Result ResetFence(Fence fence) => vk.ResetFences(_device, 1, fence);
-    public Result SubmitMainQueue(SubmitInfo submitInfo, Fence fence) => vk.QueueSubmit(_mainQueue, 1, submitInfo, fence);
-    public CommandBuffer[] AllocateCommandBuffers(uint count)
-    {
-        var commandBuffers = new Silk.NET.Vulkan.CommandBuffer[count];
-        var allocInfo = new CommandBufferAllocateInfo
-        {
-            SType = StructureType.CommandBufferAllocateInfo,
-            Level = CommandBufferLevel.Primary,
-            CommandPool = _commandPool,
-            CommandBufferCount = count
-        };
-        fixed (Silk.NET.Vulkan.CommandBuffer* pCommandBuffers = commandBuffers)
-            vk.AllocateCommandBuffers(_device, allocInfo, pCommandBuffers).Validate(_logger);
-        var vkCommandBuffers = new CommandBuffer[count];
-        for (var i = 0; i < vkCommandBuffers.Length; i++) vkCommandBuffers[i] = commandBuffers[i];
-        return vkCommandBuffers;
-    }
-    public void FreeCommandBuffers(CommandBuffer[] commandBuffers) =>
-        vk.FreeCommandBuffers(_device, _commandPool, (uint) commandBuffers.Length,
-            Array.ConvertAll(commandBuffers, cmd => (Silk.NET.Vulkan.CommandBuffer) cmd));
-    public void FreeCommandBuffer(CommandBuffer commandBuffer) =>
-        vk.FreeCommandBuffers(_device, _commandPool, 1, commandBuffer);
+    public void WaitIdle() => _device.WaitIdle();
+    public void WaitForFence(Fence fence) => _device.WaitForFence(fence);
+    public Result WaitForQueue() => _mainQueue.WaitForQueue();
+    public Result ResetFence(Fence fence) => _device.ResetFence(fence);
+    public Result SubmitMainQueue(SubmitInfo submitInfo, Fence fence) => _mainQueue.QueueSubmit(submitInfo, fence);
+    public CommandBuffer[] AllocateCommandBuffers(uint count) => _device.AllocateCommandBuffers(count, _commandPool);
+    public void FreeCommandBuffers(CommandBuffer[] commandBuffers) => _device.FreeCommandBuffers(commandBuffers, _commandPool);
+    public void FreeCommandBuffer(CommandBuffer commandBuffer) => _device.FreeCommandBuffer(commandBuffer, _commandPool);
     public Format FindFormat(Format[] candidates, ImageTiling tiling, FormatFeatureFlags formatFeatureFlags) => _physicalDevice.FindFormat(candidates, tiling, formatFeatureFlags);
-    public AllocatedImage CreateImage(ImageCreateInfo info, MemoryPropertyFlags propertyFlags)
-    {
-        var image = new Image(_device, info);
-        var allocInfo = new AllocationCreateInfo {Usage = propertyFlags};
-        _allocator.AllocateImage(image, allocInfo, out var allocation);
-        return new AllocatedImage(image, allocation);
-    }
-    public void DestroyImage(AllocatedImage image)
-    {
-        vk.DestroyImage(_device, image.Image, null);
-        image.Allocation.Dispose();
-    }
-    public AllocatedBuffer CreateBuffer(ulong bufferSize, BufferUsageFlags usageFlags, MemoryPropertyFlags memoryFlags)
-    {
-        var bufferInfo = new BufferCreateInfo
-        {
-            SType = StructureType.BufferCreateInfo,
-            Size = bufferSize,
-            Usage = usageFlags,
-            SharingMode = SharingMode.Exclusive
-        };
-        var buffer = new Buffer(_device, bufferInfo);
-        var allocInfo = new AllocationCreateInfo {Usage = memoryFlags};
-        _allocator.AllocateBuffer(buffer, allocInfo, out var allocation);
-        return new AllocatedBuffer(buffer, allocation);
-    }
-    public CommandBuffer BeginSingleTimeCommands()
-    {
-        var cmd = AllocateCommandBuffers(1)[0];
-        cmd.Begin();
-        return cmd;
-    }
-    public void EndSingleTimeCommands(CommandBuffer cmd)
-    {
-        cmd.End();
-        var commandBuffer = (Silk.NET.Vulkan.CommandBuffer)cmd;
-        var submitInfo = new SubmitInfo
-        {
-            SType = StructureType.SubmitInfo,
-            CommandBufferCount = 1,
-            PCommandBuffers = &commandBuffer
-        };
-        SubmitMainQueue(submitInfo, default);
-        WaitForQueue();
-        FreeCommandBuffer(cmd);
-    }
+    public AllocatedImage CreateImage(ImageCreateInfo info, MemoryPropertyFlags propertyFlags) => _device.CreateImage(_allocator, info, propertyFlags);
+    public AllocatedBuffer CreateBuffer(ulong bufferSize, BufferUsageFlags usageFlags, MemoryPropertyFlags memoryFlags) => _device.CreateBuffer(_allocator, bufferSize, usageFlags, memoryFlags);
+    public CommandBuffer BeginSingleTimeCommands() => _device.BeginSingleTimeCommands(_commandPool);
+    public void EndSingleTimeCommands(CommandBuffer cmd) => _device.EndSingleTimeCommands(cmd, _commandPool, _mainQueue);
 
     public void Dispose()
     {

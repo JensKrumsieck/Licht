@@ -38,6 +38,26 @@ public readonly unsafe struct SurfaceKHR : IDisposable
         return (capabilities, formats, presentModes);
     }
 
+    public static SurfaceFormatKHR SelectFormat(SurfaceFormatKHR[] formats, Format desiredFormat, ColorSpaceKHR desiredColorSpace)
+    {
+        foreach (var format in formats)
+            if (format.Format == desiredFormat && format.ColorSpace == desiredColorSpace)
+                return format;
+
+        return formats[0];
+    }
+
+    public static Extent2D ValidateExtent(Extent2D extent, SurfaceCapabilitiesKHR capabilities)
+    {
+        if (capabilities.CurrentExtent.Width != uint.MaxValue) return capabilities.CurrentExtent;
+        var actualExtent = extent;
+        actualExtent.Width = Math.Max(capabilities.MinImageExtent.Width,
+            Math.Min(capabilities.MaxImageExtent.Width, actualExtent.Width));
+        actualExtent.Height = Math.Max(capabilities.MinImageExtent.Height,
+            Math.Min(capabilities.MaxImageExtent.Height, actualExtent.Height));
+        return actualExtent;
+    }
+
     public void Dispose()
     {
         _khrSurface.DestroySurface(_instance, _surface, null);

@@ -277,7 +277,8 @@ public unsafe class VkImage : IDisposable
     public void Dispose()
     {
         _device.WaitIdle();
-        _device.DestroyImage(_allocatedImage);
+        _allocatedImage.Image.Dispose();
+        _allocatedImage.Allocation.Dispose();
         _imageView.Dispose();
         _sampler.Dispose();
         GC.SuppressFinalize(this);

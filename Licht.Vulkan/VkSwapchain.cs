@@ -2,7 +2,6 @@
 using Licht.Vulkan.Memory;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;
-using Silk.NET.Vulkan.Extensions.KHR;
 
 namespace Licht.Vulkan;
 
@@ -21,7 +20,6 @@ public sealed unsafe class VkSwapchain : IDisposable
     private readonly ILogger? _logger;
     
     private readonly SwapchainKHR _swapchain;
-    private readonly KhrSwapchain _khrSwapchain;
 
     private readonly Image[] _swapchainImages;
     private readonly ImageView[] _swapchainImageViews;
@@ -51,8 +49,8 @@ public sealed unsafe class VkSwapchain : IDisposable
         var (capabilities, formats, presentModes) = surface.GetSwapchainSupport(_device.PhysicalDevice);
         var presentMode = PresentModeKHR.FifoKhr;
         if (presentModes.Contains(PresentModeKHR.FifoRelaxedKhr)) presentMode = PresentModeKHR.FifoRelaxedKhr;
-        var format = SelectFormat(formats);
-        var extent = ValidateExtent(windowExtent, capabilities);
+        var format = SurfaceKHR.SelectFormat(formats, Format.B8G8R8A8Srgb, ColorSpaceKHR.SpaceSrgbNonlinearKhr);
+        var extent = SurfaceKHR.ValidateExtent(windowExtent, capabilities);
         var imageCount = capabilities.MinImageCount + 1;
         if (capabilities.MaxImageCount > 0 && imageCount > capabilities.MaxImageCount)
             imageCount = capabilities.MaxImageCount;
@@ -77,13 +75,7 @@ public sealed unsafe class VkSwapchain : IDisposable
             OldSwapchain = oldSwapchain??default
         };
         _swapchain = new SwapchainKHR(_device.Instance, device.Device, createInfo);
-        //already checked in ctor!
-        vk.TryGetDeviceExtension(_device.Instance, device.Device, out _khrSwapchain);
-        _khrSwapchain.GetSwapchainImages(_device.Device, _swapchain, &imageCount, null).Validate(_logger);
-        var images = new Silk.NET.Vulkan.Image[imageCount];
-        fixed(Silk.NET.Vulkan.Image* pSwapchainImages = images)
-            _khrSwapchain.GetSwapchainImages(_device.Device, _swapchain, &imageCount, pSwapchainImages).Validate(_logger);
-        _swapchainImages = Array.ConvertAll(images, i => new Image(_device.Device, i));
+        _swapchain.GetSwapchainImages(&imageCount, out _swapchainImages).Validate(_logger);
         
         _imageFormat = format.Format;
         _extent = extent;
@@ -218,7 +210,7 @@ public sealed unsafe class VkSwapchain : IDisposable
             DependencyCount = 1,
             PDependencies = &dependency
         };
-        vk.CreateRenderPass(_device.Device, renderPassInfo, null, out RenderPass).Validate(_logger);
+        RenderPass = new RenderPass(_device, renderPassInfo);
         
         //framebuffers
         Framebuffers = new Framebuffer[ImageCount];
@@ -245,9 +237,7 @@ public sealed unsafe class VkSwapchain : IDisposable
     public Result AcquireNextImage(ref uint imageIndex)
     {
         _device.WaitForFence(_inFlightFences[_currentFrame]);
-        return _khrSwapchain.AcquireNextImage(_device.Device, _swapchain, ulong.MaxValue,
-            _imageAvailableSemaphores[_currentFrame],
-            default, ref imageIndex);
+        return _swapchain.AcquireNextImage(ulong.MaxValue, _imageAvailableSemaphores[_currentFrame], default, ref imageIndex);
     }
     
     public Result SubmitCommandBuffers(CommandBuffer cmd, uint imageIndex)
@@ -288,30 +278,10 @@ public sealed unsafe class VkSwapchain : IDisposable
             PSwapchains = swapchain,
             PImageIndices = &imageIndex
         };
-        return _khrSwapchain.QueuePresent(_device.MainQueue, presentInfo);
+        return _swapchain.QueuePresent(_device.MainQueue, presentInfo);
     }
 
     public static implicit operator Silk.NET.Vulkan.SwapchainKHR(VkSwapchain s) => s._swapchain;
-    
-    private static SurfaceFormatKHR SelectFormat(SurfaceFormatKHR[] formats)
-    {
-        foreach (var format in formats)
-            if (format is {Format: Format.B8G8R8A8Srgb, ColorSpace: ColorSpaceKHR.SpaceSrgbNonlinearKhr})
-                return format;
-
-        return formats[0];
-    }
-    
-    private static Extent2D ValidateExtent(Extent2D extent, SurfaceCapabilitiesKHR capabilities)
-    {
-        if (capabilities.CurrentExtent.Width != uint.MaxValue) return capabilities.CurrentExtent;
-        var actualExtent = extent;
-        actualExtent.Width = Math.Max(capabilities.MinImageExtent.Width,
-            Math.Min(capabilities.MaxImageExtent.Width, actualExtent.Width));
-        actualExtent.Height = Math.Max(capabilities.MinImageExtent.Height,
-            Math.Min(capabilities.MaxImageExtent.Height, actualExtent.Height));
-        return actualExtent;
-    }
 
     public void Dispose()
     {
@@ -343,6 +313,5 @@ public sealed unsafe class VkSwapchain : IDisposable
         Array.Clear(_renderFinishedSemaphores);
 
         _swapchain.Dispose();
-        _khrSwapchain.Dispose();
     }
 }
