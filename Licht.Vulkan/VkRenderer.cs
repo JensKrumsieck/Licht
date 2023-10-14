@@ -1,5 +1,4 @@
-﻿using Licht.GraphicsCore;
-using Licht.Vulkan.Extensions;
+﻿using Licht.Vulkan.Extensions;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;
 using Silk.NET.Windowing;
@@ -9,7 +8,8 @@ namespace Licht.Vulkan;
 public class VkRenderer : IDisposable
 {
     public RenderPass? RenderPass => _swapchain?.RenderPass;
-    public VkGraphicsDevice Device => _device; 
+    public VkGraphicsDevice Device => _device;
+    public Extent2D? Extent => _swapchain?.Extent;
     
     private readonly ILogger? _logger;
     private readonly VkGraphicsDevice _device;

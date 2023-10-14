@@ -5,7 +5,7 @@ using Silk.NET.Vulkan;
 
 namespace Licht.Vulkan.Extensions;
 
-public static unsafe class DebugExtensions
+public static class DebugExtensions
 {
     public static LogLevel GetLogLevel(this DebugUtilsMessageSeverityFlagsEXT severityFlagsExt) => severityFlagsExt switch
     {

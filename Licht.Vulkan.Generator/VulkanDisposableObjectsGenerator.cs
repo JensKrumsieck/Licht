@@ -24,6 +24,8 @@ public class VulkanDisposableObjectsGenerator : ISourceGenerator
         "ShaderModule",
         "PipelineLayout",
         "PhysicalDevice",
+        "DescriptorPool",
+        "DescriptorSetLayout",
         "SwapchainKHR",
         "DebugUtilsMessengerEXT"
     };

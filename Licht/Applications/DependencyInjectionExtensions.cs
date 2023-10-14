@@ -1,5 +1,4 @@
 ﻿using Licht.Applications;
-using Licht.GraphicsCore;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Core.Contexts;
 using Silk.NET.Maths;
