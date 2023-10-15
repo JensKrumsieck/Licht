@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using ImGuiNET;
+using Licht.Core;
 using Licht.Vulkan;
 using Licht.Vulkan.UI;
 using Microsoft.Extensions.Logging;
@@ -14,7 +15,8 @@ public class ImGuiApplication : WindowedApplication
     public readonly ImGuiContext UiContext;
     public ImGuiApplication(ILogger logger, VkRenderer renderer, IWindow window) : base(logger, renderer, window)
     {
-        UiContext = new ImGuiContext(renderer, window, window.CreateInput());
+        var fontData = FileTool.ReadBytesFromResource("assets.Roboto-Regular.ttf");
+        UiContext = new ImGuiContext(renderer, window, window.CreateInput(), fontData);
         var io = ImGui.GetIO();
         io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;

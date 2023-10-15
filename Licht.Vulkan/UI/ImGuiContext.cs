@@ -32,7 +32,7 @@ public unsafe class ImGuiContext : IDisposable
     private readonly List<char> _pressedChars = new();
     private Key[]? _allKeys;
 
-    public ImGuiContext(VkRenderer renderer, IWindow window, IInputContext input)
+    public ImGuiContext(VkRenderer renderer, IWindow window, IInputContext input, byte[]? fontBytes = null)
     {
         _renderer = renderer;
         _device = _renderer.Device;
@@ -42,6 +42,13 @@ public unsafe class ImGuiContext : IDisposable
         var context = ImGui.CreateContext();
         ImGui.SetCurrentContext(context);
         var io = ImGui.GetIO();
+
+        if (fontBytes is not null)
+        {
+            var mData = fontBytes.AsMemory(0);
+            using var hData = mData.Pin();
+            io.Fonts.AddFontFromMemoryTTF((nint)hData.Pointer,fontBytes.Length,14);
+        }
         
         io.Fonts.AddFontDefault();
         io.Fonts.GetTexDataAsRGBA32(out nint pixels, out var width, out var height);
