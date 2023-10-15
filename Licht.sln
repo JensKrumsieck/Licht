@@ -15,7 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Licht.Vulkan", "Licht.Vulka
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Licht.Vulkan.Generator", "Licht.Vulkan.Generator\Licht.Vulkan.Generator.csproj", "{39AEB4C0-38E3-405A-B47B-6A02C34405C6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImGuiExample", "ImGuiExample\ImGuiExample.csproj", "{DE84C4F9-4B49-47A5-829A-EE59E6D15538}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImGuiExample", "Examples\ImGuiExample\ImGuiExample.csproj", "{DE84C4F9-4B49-47A5-829A-EE59E6D15538}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

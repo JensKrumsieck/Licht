@@ -1,6 +1,6 @@
 ﻿<Project>
     <PropertyGroup>
-        <Version>0.1.0-alpha.5</Version>
+        <Version>0.1.0-beta.2</Version>
         <LangVersion>latest</LangVersion>
         <Authors>Jens Krumsieck</Authors>
         <Copyright>Jens Krumsieck</Copyright>
@@ -12,4 +12,8 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <DefineConstants>$(DefineConstants);LWARN;LINFO;LVERBOSE;LTRACE;LGRAPHICSDEBUG</DefineConstants>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
 </Project>

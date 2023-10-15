@@ -9,8 +9,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Licht.Vulkan\Licht.Vulkan.csproj" />
-      <ProjectReference Include="..\Licht\Licht.csproj" />
+      <ProjectReference Include="..\..\Licht.Vulkan\Licht.Vulkan.csproj" />
+      <ProjectReference Include="..\..\Licht\Licht.csproj" />
     </ItemGroup>
 
 </Project>
