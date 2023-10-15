@@ -46,7 +46,7 @@ sealed unsafe class RaytracingApplication : WindowedApplication
             new() {Type = DescriptorType.StorageImage, DescriptorCount = 1000},
             new() {Type = DescriptorType.Sampler, DescriptorCount = 1000}
         };
-        _descriptorPool =_device.CreateDescriptorPool(poolSizes);
+        _descriptorPool =_device.CreateDescriptorPool(poolSizes, 10);
         var binding0 = new DescriptorSetLayoutBinding
         {
             Binding = 0,

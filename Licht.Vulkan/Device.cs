@@ -122,7 +122,7 @@ public unsafe partial struct Device
         return new DescriptorSetLayout(this, layoutCreateInfo);
     }
     
-    public DescriptorPool CreateDescriptorPool(DescriptorPoolSize[] poolSizes)
+    public DescriptorPool CreateDescriptorPool(DescriptorPoolSize[] poolSizes, uint maxSets = 1)
     {
         fixed (DescriptorPoolSize* pPoolSizes = poolSizes)
         {
@@ -131,7 +131,7 @@ public unsafe partial struct Device
                 SType = StructureType.DescriptorPoolCreateInfo,
                 PoolSizeCount = (uint) poolSizes.Length,
                 PPoolSizes = pPoolSizes,
-                MaxSets = 1,
+                MaxSets = maxSets,
                 Flags = DescriptorPoolCreateFlags.FreeDescriptorSetBit
             };
             vk.CreateDescriptorPool(_device, createInfo, null, out var descriptorPool);
