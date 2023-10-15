@@ -15,6 +15,10 @@ public class ImGuiApplication : WindowedApplication
     public ImGuiApplication(ILogger logger, VkRenderer renderer, IWindow window) : base(logger, renderer, window)
     {
         UiContext = new ImGuiContext(renderer, window, window.CreateInput());
+        var io = ImGui.GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard;
+        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
+        io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
     }
     public override void BeforeDraw()
     {
