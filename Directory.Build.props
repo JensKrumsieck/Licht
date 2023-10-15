@@ -10,10 +10,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageTags>Rendering, Vulkan, ImGui</PackageTags>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <DefineConstants>$(DefineConstants);LWARN;LINFO;LVERBOSE;LTRACE;LGRAPHICSDEBUG</DefineConstants>
     </PropertyGroup>
-
-    <ItemGroup>
-        <None Include="README.md" Pack="true" PackagePath="\"/>
-    </ItemGroup>
 </Project>
