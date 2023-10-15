@@ -10,6 +10,8 @@ public class VkRenderer : IDisposable
     public RenderPass? RenderPass => _swapchain?.RenderPass;
     public VkGraphicsDevice Device => _device;
     public Extent2D? Extent => _swapchain?.Extent;
+    public VkSwapchain? Swapchain => _swapchain;
+    public uint CurrentImageIndex => _currentImageIndex;
     
     private readonly ILogger? _logger;
     private readonly VkGraphicsDevice _device;

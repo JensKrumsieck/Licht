@@ -1,5 +1,6 @@
 ﻿using Licht.Vulkan.Extensions;
 using Licht.Vulkan.Memory;
+using Licht.Vulkan.Pipelines;
 using Silk.NET.Vulkan;
 using SkiaSharp;
 
@@ -13,7 +14,7 @@ public unsafe class VkImage : IDisposable
     private ImageView _imageView;
     private Sampler _sampler;
     public Extent3D ImageExtent => new(Width, Height, 1);
-
+    public DescriptorSet ImGuiDescriptorSet => _descriptorSet;
     public uint Width { get; private set; }
     public uint Height { get; private set; }
     public readonly Format ImageFormat;
@@ -21,6 +22,8 @@ public unsafe class VkImage : IDisposable
     private ImageLayout _currentLayout;
     private readonly ImageUsageFlags _imageUsage;
 
+    private DescriptorSet _descriptorSet;
+    
     public Image Image => _allocatedImage.Image;
     public Allocation Allocation => _allocatedImage.Allocation;
 
@@ -122,6 +125,19 @@ public unsafe class VkImage : IDisposable
         TransitionLayoutImmediate(ImageLayout.TransferDstOptimal, 1, 1);
         stagingBuffer.CopyToImage(this);
         TransitionLayoutImmediate(_desiredLayout, 1, 1);
+    }
+    
+    public void Bind(CommandBuffer cmd, PipelineEffect effect)
+    {
+        if (_descriptorSet.Handle == 0)
+            throw new Exception($"Texture is not ready to bind! Call {nameof(PrepareBind)} first");
+        cmd.BindGraphicsDescriptorSet(_descriptorSet, effect);
+    }
+
+    public void PrepareBind(DescriptorPool pool, DescriptorSetLayout setLayout, uint binding = 0)
+    {
+        _descriptorSet = pool.AllocateDescriptorSet(setLayout);
+        _device.UpdateDescriptorSetImage(ref _descriptorSet, ImageInfo, DescriptorType.CombinedImageSampler, binding);
     }
 
     public DescriptorImageInfo ImageInfo => new()
@@ -271,6 +287,7 @@ public unsafe class VkImage : IDisposable
         Dispose();
         AllocateImage();
     }
+    public void Free(DescriptorPool pool) => pool.FreeDescriptorSet(_descriptorSet);
 
     public static implicit operator Silk.NET.Vulkan.Image(VkImage i) => i._allocatedImage.Image;
 

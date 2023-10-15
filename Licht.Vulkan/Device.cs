@@ -44,8 +44,11 @@ public unsafe partial struct Device
         return buffers;
     }
 
-    public void FreeCommandBuffer(CommandBuffer commandBuffer, CommandPool pool) =>
-        vk.FreeCommandBuffers(_device, pool, 1, commandBuffer);
+    public void FreeCommandBuffer(CommandBuffer commandBuffer, CommandPool pool)
+    {
+        var vkCmd = (Silk.NET.Vulkan.CommandBuffer) commandBuffer;
+        vk.FreeCommandBuffers(_device, pool, 1, &vkCmd);
+    }
 
     public void FreeCommandBuffers(CommandBuffer[] commandBuffers, CommandPool pool) =>
         vk.FreeCommandBuffers(_device, pool, (uint)commandBuffers.Length,

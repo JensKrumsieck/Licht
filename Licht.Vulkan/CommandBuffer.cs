@@ -55,5 +55,4 @@ public unsafe partial struct CommandBuffer
 
     public void PushConstants(PipelineEffect effect, ShaderStageFlags flags, uint offset, uint scale, void* data) =>
         PushConstants(effect.EffectLayout, flags, offset, scale, data);
-    
 }

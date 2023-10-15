@@ -25,7 +25,6 @@ namespace Licht.Vulkan
         public readonly ulong Handle => (ulong) _{typeLower}.Handle;
         public static implicit operator Silk.NET.Vulkan.{type}({type} t) => t._{typeLower};
         public static implicit operator {type}(Silk.NET.Vulkan.{type} t) => new(t);
-        public static implicit operator Silk.NET.Vulkan.{type}*({type} t) => &t._{typeLower};
         public {type} (Silk.NET.Vulkan.{type} vkStruct) => _{typeLower} = vkStruct;
 ");
         foreach (var symbol in api.GetAllMethods().Where(s => s.Name.StartsWith("Cmd")))

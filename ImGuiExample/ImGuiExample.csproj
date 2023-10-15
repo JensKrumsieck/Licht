@@ -5,10 +5,12 @@
         <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <RootNamespace>Temp</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\Catalyze\Catalyze.csproj" />
+      <ProjectReference Include="..\Licht.Vulkan\Licht.Vulkan.csproj" />
+      <ProjectReference Include="..\Licht\Licht.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,6 +1,15 @@
 ﻿<Project>
     <PropertyGroup>
+        <Version>0.1.0-alpha.5</Version>
+        <LangVersion>latest</LangVersion>
+        <Authors>Jens Krumsieck</Authors>
+        <Copyright>Jens Krumsieck</Copyright>
+        <RepositoryUrl>https://github.com/JensKrumsieck/Licht</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/JensKrumsieck/Licht</PackageProjectUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>Rendering, Vulkan, ImGui</PackageTags>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <DefineConstants>$(DefineConstants);LWARN;LINFO;LVERBOSE;LTRACE;LGRAPHICSDEBUG</DefineConstants>
-    </PropertyGroup>    
+    </PropertyGroup>
 </Project>

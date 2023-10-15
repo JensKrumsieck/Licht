@@ -33,6 +33,8 @@ public class WindowedApplication : BaseApplication
         var cmd = Renderer.BeginFrame();
         Renderer.BeginRenderPass(cmd);
         DrawFrame(cmd, deltaTime);
+        DrawUI(cmd, deltaTime);
+        SubmitUI(cmd, deltaTime);
         Renderer.EndRenderPass(cmd);
         Renderer.EndFrame();
         AfterDraw();
@@ -44,6 +46,16 @@ public class WindowedApplication : BaseApplication
     }
     
     public virtual void DrawFrame(CommandBuffer cmd, float deltaTime)
+    {
+        //does nothing!
+    }
+
+    public virtual void DrawUI(CommandBuffer cmd, float deltaTime)
+    {
+        //does nothing!
+    }
+    
+    protected virtual void SubmitUI(CommandBuffer cmd, float deltaTime)
     {
         //does nothing!
     }

@@ -15,6 +15,8 @@ public unsafe class VkBuffer : IDisposable
     public Buffer Buffer => AllocatedBuffer.Buffer;
     public DeviceMemory Memory => AllocatedBuffer.Allocation.AllocatedMemory;
 
+    private bool _isMapped;
+    
     public VkBuffer(VkGraphicsDevice device, ulong size, BufferUsageFlags usageFlags, MemoryPropertyFlags memoryFlags)
     {
         _device = device;
@@ -31,8 +33,16 @@ public unsafe class VkBuffer : IDisposable
         return bufferSize;
     }
 
-    public Result Map(ref void* pMappedData, ulong size = Vk.WholeSize, ulong offset = 0) => AllocatedBuffer.Allocation.Map(ref pMappedData, size, offset);
-    public void Unmap() => AllocatedBuffer.Allocation.Unmap();
+    public Result Map(ref void* pMappedData, ulong size = Vk.WholeSize, ulong offset = 0)
+    {
+        _isMapped = true;
+        return AllocatedBuffer.Allocation.Map(ref pMappedData, size, offset);
+    }
+    public void Unmap()
+    {
+        _isMapped = false;
+        AllocatedBuffer.Allocation.Unmap();
+    }
 
     public void WriteToBuffer(void* data, void* destination, ulong size = Vk.WholeSize, ulong offset = 0)
     {
@@ -93,7 +103,6 @@ public unsafe class VkBuffer : IDisposable
         stagingBuffer.Map(ref destination).Validate(device.Logger);
         stagingBuffer.WriteToBuffer(data, destination, size);
         stagingBuffer.Flush().Validate(device.Logger);
-        stagingBuffer.Unmap();
         return stagingBuffer;
     }
     
@@ -111,7 +120,7 @@ public unsafe class VkBuffer : IDisposable
 
     public void Dispose()
     {
-        Unmap();
+        if(_isMapped) Unmap();
         vk.DestroyBuffer(_device.Device, AllocatedBuffer.Buffer, null);
         AllocatedBuffer.Allocation.Dispose();
         GC.SuppressFinalize(this);
