@@ -19,9 +19,13 @@ jobs:
           NUGET_AUTH_TOKEN: ${{secrets.NUGET_TOKEN}}
       - name: Install Dependencies
         run: dotnet restore
-      - name: Build
-        run: dotnet build .\Catalyze --configuration Release --no-restore
-      - name: Pack
-        run: dotnet pack .\Catalyze -c Release --no-restore --no-build
+      - name: Build Vulkan
+        run: dotnet build .\Licht.Vulkan --configuration Release --no-restore
+      - name: Build Licht
+        run: dotnet build .\Licht --configuration Release --no-restore
+      - name: Pack Vulkan
+        run: dotnet pack .\Licht.Vulkan -c Release --no-restore --no-build
+      - name: Pack Licht
+        run: dotnet pack .\Licht -c Release --no-restore --no-build
       - name: Push Nuget
-        run: dotnet nuget push .\Catalyze\**\*.nupkg --skip-duplicate --no-symbols -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json  
+        run: dotnet nuget push .\**\*.nupkg --skip-duplicate --no-symbols -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json
