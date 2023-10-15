@@ -24,19 +24,19 @@ steps:
 - task: VSBuild@1
   inputs:
     solution: '$(solution)'
+    msbuildArgs: '/t:"Licht" /t:"Licht_Vulkan" /t:"Licht_Vulkan_Generator"'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
-
-- task: VSTest@2
-  inputs:
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
-
-- task: NuGetCommand@2
+    msbuildArchitecture: 'x64'
+- task: DotNetCoreCLI@2
   inputs:
     command: 'pack'
-    packagesToPack: '**/*.csproj'
-    versioningScheme: 'byBuildNumber'
+    packagesToPack: '**/Licht*.csproj'
+    nobuild: true
+    versioningScheme: 'byPrereleaseNumber'
+    majorVersion: '0'
+    minorVersion: '1'
+    patchVersion: '0'
 
 - task: DotNetCoreCLI@2
   inputs:
