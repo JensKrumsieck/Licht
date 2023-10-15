@@ -5,8 +5,6 @@ VisualStudioVersion = 17.7.34003.232
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TriangleExample", "Examples\TriangleExample\TriangleExample.csproj", "{FFAF4979-5CE5-4336-9BAD-4B216DC2DAB9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Catalyze", "Catalyze\Catalyze.csproj", "{9607AC72-F0F4-4664-A2FF-F9440DF2E9A0}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{ACA4C31C-0201-48BC-91AA-F2F13BAAFCEB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputeShader", "Examples\ComputeShader\ComputeShader.csproj", "{FDB346DF-7799-4DAA-869C-737FBA8BD07F}"
@@ -29,10 +27,6 @@ Global
 		{FFAF4979-5CE5-4336-9BAD-4B216DC2DAB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FFAF4979-5CE5-4336-9BAD-4B216DC2DAB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FFAF4979-5CE5-4336-9BAD-4B216DC2DAB9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9607AC72-F0F4-4664-A2FF-F9440DF2E9A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9607AC72-F0F4-4664-A2FF-F9440DF2E9A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9607AC72-F0F4-4664-A2FF-F9440DF2E9A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9607AC72-F0F4-4664-A2FF-F9440DF2E9A0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FDB346DF-7799-4DAA-869C-737FBA8BD07F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FDB346DF-7799-4DAA-869C-737FBA8BD07F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FDB346DF-7799-4DAA-869C-737FBA8BD07F}.Release|Any CPU.ActiveCfg = Release|Any CPU
