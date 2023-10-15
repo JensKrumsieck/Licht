@@ -30,6 +30,8 @@ public unsafe partial struct CommandBuffer
     public void BindGraphicsPipeline(VkGraphicsPipeline pipeline)
         => BindPipeline(PipelineBindPoint.Graphics, pipeline);
 
+    public void BindComputePipeline(VkComputePipeline pipeline) => BindPipeline(PipelineBindPoint.Compute, pipeline);
+    
     public void BindGraphicsDescriptorSet(DescriptorSet set, PipelineEffect effect) 
         => BindDescriptorSets(PipelineBindPoint.Graphics, effect.EffectLayout, 0, 1, set, 0, null);
 
@@ -53,4 +55,5 @@ public unsafe partial struct CommandBuffer
 
     public void PushConstants(PipelineEffect effect, ShaderStageFlags flags, uint offset, uint scale, void* data) =>
         PushConstants(effect.EffectLayout, flags, offset, scale, data);
+    
 }

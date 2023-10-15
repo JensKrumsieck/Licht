@@ -10,6 +10,19 @@ public unsafe partial struct Device
         vk.GetDeviceQueue(this, familyIndex, queueIndex, out var queue);
         return queue;
     }
+
+    public void SubmitCommandBufferToQueue(Queue q, CommandBuffer cmd, Fence f)
+    {
+        var vkCmd = (Silk.NET.Vulkan.CommandBuffer) cmd;
+        var submitInfo = new SubmitInfo
+        {
+            SType = StructureType.SubmitInfo,
+            CommandBufferCount = 1,
+            PCommandBuffers = &vkCmd
+        };
+        q.QueueSubmit(submitInfo, f);
+    }
+
     public void WaitIdle() => vk.DeviceWaitIdle(_device);
     public void WaitForFence(Fence fence) => vk.WaitForFences(_device, 1u, fence, true, ulong.MaxValue);
     public Result ResetFence(Fence fence) => vk.ResetFences(_device, 1, fence);
@@ -95,6 +108,17 @@ public unsafe partial struct Device
             return new DescriptorSetLayout(this, layoutCreateInfo);
         }
     }
+    public DescriptorSetLayout CreateDescriptorSetLayout(DescriptorSetLayoutBinding binding)
+    {
+        var layoutCreateInfo = new DescriptorSetLayoutCreateInfo
+        {
+                SType = StructureType.DescriptorSetLayoutCreateInfo,
+                BindingCount = 1,
+                PBindings = &binding
+        };
+        return new DescriptorSetLayout(this, layoutCreateInfo);
+    }
+    
     public DescriptorPool CreateDescriptorPool(DescriptorPoolSize[] poolSizes)
     {
         fixed (DescriptorPoolSize* pPoolSizes = poolSizes)
@@ -111,4 +135,20 @@ public unsafe partial struct Device
             return new DescriptorPool(this, descriptorPool);
         }
     }
+    public void UpdateDescriptorSetImage(ref DescriptorSet set, DescriptorImageInfo imageInfo, DescriptorType type,
+        uint binding = 0)
+    {
+        var write = new WriteDescriptorSet
+        {
+            SType = StructureType.WriteDescriptorSet,
+            DstSet = set,
+            DstBinding = binding,
+            DstArrayElement = 0,
+            DescriptorCount = 1,
+            PImageInfo = &imageInfo,
+            DescriptorType = type
+        };
+        vk.UpdateDescriptorSets(_device, 1, &write, 0, default);
+    }
+    
 }

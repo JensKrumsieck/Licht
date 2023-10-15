@@ -1,122 +1,114 @@
-﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using Catalyze;
-using Catalyze.Allocation;
-using Catalyze.Applications;
-using Catalyze.Pipeline;
-using Catalyze.Tools;
-using Catalyze.UI;
-using ComputeShader;
-using ImGuiNET;
+﻿using Licht.Applications;
+using Licht.Core;
+using Licht.Vulkan;
+using Licht.Vulkan.Memory;
+using Licht.Vulkan.Pipelines;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;
 using Silk.NET.Windowing;
-using DescriptorPool = Catalyze.DescriptorPool;
-using DescriptorSet = Catalyze.DescriptorSet;
-using DescriptorSetLayout = Catalyze.DescriptorSetLayout;
+using CommandBuffer = Licht.Vulkan.CommandBuffer;
+using DescriptorPool = Licht.Vulkan.DescriptorPool;
+using DescriptorSetLayout = Licht.Vulkan.DescriptorSetLayout;
 
-var builder = Application.CreateBuilder();
-var window = builder.Services.AddWindowing(WindowOptions.DefaultVulkan);
-builder.Services.AddInput(window);
-builder.Services.RegisterSingleton<IAllocator, PassthroughAllocator>();
+var opts = ApplicationSpecification.Default with {IsResizeable = false, Height = 500, Width = 500};
+var builder = new ApplicationBuilder(opts);
 
-var app = builder.Build();
-var options = new GraphicsDeviceCreateOptions();
-options.PhysicalDeviceSelector = SelectorTools.DefaultGpuSelector;
-app.UseVulkan(options)
-    .UseImGui();
-app.AttachLayer<ComputeShaderAppLayer>();
-app.Run();
-app.Dispose();
+builder.Services.AddSingleton<ILogger, Logger>();
+builder.Services.AddWindow(opts);
+builder.Services.AddVulkanRenderer<PassthroughAllocator>();
 
-namespace ComputeShader
 {
-    public struct BlurSettings
+    using var app = builder.Build<RaytracingApplication>();
+    app.Run();
+}
+
+sealed unsafe class RaytracingApplication : WindowedApplication
+{
+    private readonly VkGraphicsDevice _device;
+    private readonly VkImage _image;
+    private readonly CommandBuffer _computeCmd;
+    private readonly PipelineEffect _computeEffect;
+    private readonly PipelineEffect _graphicsEffect;
+    private readonly VkComputePipeline _computePipeline;
+    private readonly VkGraphicsPipeline _pipeline;
+    private readonly DescriptorPool _descriptorPool;
+    private readonly DescriptorSetLayout _descriptorSetLayout;
+    private DescriptorSet _descriptorSet;
+    
+    public RaytracingApplication(ILogger logger, VkGraphicsDevice device, VkRenderer renderer, IWindow window) : base(logger, renderer, window)
     {
-        public int KernelSize = 3;
-        public float Sigma = 1f;
-        public BlurSettings() {}
+        _device = device;
+        _computeCmd = _device.AllocateCommandBuffers(1)[0];
+        
+        var poolSizes = new DescriptorPoolSize[]
+        {
+            new() {Type = DescriptorType.StorageImage, DescriptorCount = 1000},
+            new() {Type = DescriptorType.Sampler, DescriptorCount = 1000}
+        };
+        _descriptorPool =_device.CreateDescriptorPool(poolSizes);
+        var binding0 = new DescriptorSetLayoutBinding
+        {
+            Binding = 0,
+            DescriptorCount = 1,
+            DescriptorType = DescriptorType.StorageImage,
+            StageFlags = ShaderStageFlags.ComputeBit
+        };
+        var binding1 = new DescriptorSetLayoutBinding
+        {
+            Binding = 1,
+            DescriptorCount = 1,
+            DescriptorType = DescriptorType.CombinedImageSampler,
+            StageFlags = ShaderStageFlags.FragmentBit
+        };
+        _descriptorSetLayout = _device.CreateDescriptorSetLayout(new[]{binding0, binding1});
+        _descriptorSet = _descriptorPool.AllocateDescriptorSet(_descriptorSetLayout);
+        _computeEffect = PipelineEffect.BuildComputeEffect(_device, "./assets/shaders/raytracing_simple.comp.spv", new[]{_descriptorSetLayout});
+        _computePipeline = new VkComputePipeline(_device, _computeEffect);
+        
+        _graphicsEffect = PipelineEffect.BuildEffect(_device, "./assets/shaders/quad.vert.spv", "./assets/shaders/quad.frag.spv", new[] {_descriptorSetLayout});
+        _pipeline = new VkGraphicsPipeline(_device, _graphicsEffect, GraphicsPipelineDescription.Default(), new VertexInfo(), renderer.RenderPass!.Value);
+        
+        var width = renderer.Extent?.Width ?? 0;
+        var height = renderer.Extent?.Height ?? 0;
+        _image = new VkImage(_device, width, height, Format.B8G8R8A8Unorm, ImageLayout.General, ImageUsageFlags.TransferSrcBit | ImageUsageFlags.StorageBit | ImageUsageFlags.ColorAttachmentBit | ImageUsageFlags.SampledBit);
+        _device.UpdateDescriptorSetImage(ref _descriptorSet, _image.ImageInfo, DescriptorType.StorageImage, 0);
+        _device.UpdateDescriptorSetImage(ref _descriptorSet, _image.ImageInfo with {ImageLayout = ImageLayout.ShaderReadOnlyOptimal}, DescriptorType.CombinedImageSampler, 1);
+    }
+    
+    public override void BeforeDraw()
+    {
+        base.BeforeDraw();
+        _computeCmd.Begin();
+        _image.TransitionLayout(_computeCmd, ImageLayout.General, 1, 1);
+        _computeCmd.BindComputePipeline(_computePipeline);
+        _computeCmd.BindComputeDescriptorSet(_descriptorSet, _computeEffect);
+        _computeCmd.Dispatch(_image.Width/16 + 1,_image.Height/16 + 1,1);
+        _image.TransitionLayout(_computeCmd, ImageLayout.ShaderReadOnlyOptimal, 1, 1);
+        _computeCmd.End();
+        _device.SubmitCommandBufferToQueue(_computeCmd, default);
+        _device.WaitForQueue(); //could use a fence here ^^
     }
 
-    public unsafe class ComputeShaderAppLayer : IAppLayer
+    public override void DrawFrame(CommandBuffer cmd, float deltaTime)
     {
-        private Renderer _renderer = null!;
+        base.DrawFrame(cmd, deltaTime);
+        cmd.BindGraphicsPipeline(_pipeline);
+        cmd.BindGraphicsDescriptorSet(_descriptorSet, _graphicsEffect);
+        cmd.Draw(4, 1, 0, 0);
+    }
 
-        public BlurSettings BlurSettings = new();
-    
-        private ComputePass _postProcessPass;
-        private ShaderEffect _postProcessEffect;
-    
-        private DescriptorPool _descriptorPool;
-        private DescriptorSetLayout _descriptorSetLayout;
-        private DescriptorSet _descriptorSet;
-        private Texture _texture = null!;
-        public Texture OutputTexture = null!;
-    
-        public void OnAttach()
-        {
-            _renderer = Application.GetInstance().GetModule<Renderer>()!;
-            _descriptorPool = new DescriptorPool(_renderer.Device.VkDevice, new[] {new DescriptorPoolSize(DescriptorType.StorageImage, 1000)}, 1000);
-            _descriptorSetLayout = DescriptorSetLayoutBuilder
-                .Start()
-                .With(0, DescriptorType.StorageImage, ShaderStageFlags.ComputeBit)
-                .With(1, DescriptorType.StorageImage, ShaderStageFlags.ComputeBit)
-                .CreateOn(_renderer.Device.VkDevice);
-            var setLayouts = new[] {_descriptorSetLayout};
-            _descriptorSet = _descriptorPool.AllocateDescriptorSet(setLayouts);
-            var pushConstants = new PushConstantRange(ShaderStageFlags.ComputeBit,0,(uint) Unsafe.SizeOf<BlurSettings>());
-            _postProcessEffect = ShaderEffect.BuildComputeEffect(_renderer.Device.VkDevice, "./Shaders/gaussian.comp.spv",
-                setLayouts, pushConstants);
-            _postProcessPass = new ComputePass(_renderer.Device.VkDevice, _postProcessEffect);
-
-            _texture = new Texture(_renderer.Device, "./Assets/atomium.jpg", ImageLayout.General, Format.R8G8B8A8Unorm, ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.StorageBit);
-            OutputTexture = new Texture(_renderer.Device, _texture.Width, _texture.Height, Format.R8G8B8A8Unorm, ImageLayout.General, ImageUsageFlags.SampledBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.StorageBit);
-        
-            _renderer.Device.TransitionImageLayout(OutputTexture.Image, OutputTexture.ImageFormat, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 1, 1);
-            _renderer.Device.TransitionImageLayout(OutputTexture.Image, OutputTexture.ImageFormat, ImageLayout.TransferDstOptimal, ImageLayout.General, 1, 1);
-            _descriptorPool.UpdateDescriptorSetImage(ref _descriptorSet, _texture.ImageInfo, DescriptorType.StorageImage);
-            _descriptorPool.UpdateDescriptorSetImage(ref _descriptorSet, OutputTexture.ImageInfo, DescriptorType.StorageImage, 1);
-            Application.GetInstance().GetModule<ImGuiRenderer>()!.LoadTexture(OutputTexture);
-        }
-
-        public void OnUpdate(double deltaTime)
-        {
-            var cmd = _renderer.Device.BeginSingleTimeCommands();
-            cmd.BindComputePipeline(_postProcessPass);
-            var blurSettings = BlurSettings;
-            cmd.PushConstants(_postProcessEffect, ShaderStageFlags.ComputeBit, 0, (uint) sizeof(BlurSettings), &blurSettings);
-            cmd.BindComputeDescriptorSet(_descriptorSet, _postProcessEffect);
-            cmd.Dispatch(OutputTexture.Width/8, OutputTexture.Height/8);
-            _renderer.Device.EndSingleTimeCommands(cmd);
-        }
-
-        public void OnDrawGui(double deltaTime)
-        {
-            ImGui.DockSpaceOverViewport();
-            ImGui.Begin("Settings");
-            ImGui.DragFloat("Blur Sigma", ref BlurSettings.Sigma, .01f, 0, float.MaxValue);
-            ImGui.DragInt("Blur Kernel", ref BlurSettings.KernelSize, 1, 0, int.MaxValue);
-            ImGui.End();
-        
-            ImGui.Begin("Image");
-            //fit image into viewport
-            var availWidth = ImGui.GetContentRegionAvail().X;
-            var availHeight = ImGui.GetContentRegionAvail().Y;
-            var facW = OutputTexture.Width / availWidth;
-            var facH = OutputTexture.Height / availHeight;
-            var fac = Math.Max(facW, facH);
-            ImGui.Image((nint) OutputTexture.DescriptorSet.Handle, new Vector2(OutputTexture.Width / fac, OutputTexture.Height / fac), new Vector2(1,0), new Vector2(0,1));
-            ImGui.End();
-        }
-
-        public void OnDetach()
-        { 
-            Application.GetInstance().GetModule<ImGuiRenderer>()!.UnloadTexture(OutputTexture);
-            OutputTexture.Dispose();
-            _texture.Dispose();
-            _descriptorPool.Dispose();
-            _descriptorSetLayout.Dispose();
-            _postProcessEffect.Dispose();
-            _postProcessPass.Dispose();
-        }
+    public override void Release()
+    {
+        base.Release();
+        _device.WaitIdle();
+        _image.Dispose();
+        _computePipeline.Dispose();
+        _pipeline.Dispose();
+        _computeEffect.Dispose();
+        _graphicsEffect.Dispose();
+        _descriptorPool.FreeDescriptorSet(_descriptorSet);
+        _descriptorSetLayout.Dispose();
+        _descriptorPool.Dispose();
     }
 }

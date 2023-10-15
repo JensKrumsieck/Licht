@@ -31,8 +31,8 @@ public abstract class BaseApplication : IApplication
     {
         if (_isDisposed) return;
         _isDisposed = true;
-        Logger.LogTrace("Application exit");
         Release();
+        Logger.LogTrace("Application exit");
         Services.Dispose();
         GC.SuppressFinalize(this);
     }

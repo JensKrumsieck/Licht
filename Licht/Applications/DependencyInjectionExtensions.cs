@@ -14,7 +14,8 @@ public static class DependencyInjectionExtensions
         {
             Title = opts.ApplicationName,
             Size = new Vector2D<int>(opts.Width, opts.Height),
-            WindowState = opts.IsFullscreen ? WindowState.Fullscreen : WindowState.Normal
+            WindowState = opts.IsFullscreen ? WindowState.Fullscreen : WindowState.Normal,
+            WindowBorder = opts.IsResizeable ? WindowBorder.Resizable : WindowBorder.Fixed
         };
         var window = Window.Create(options);
         window.Initialize();
