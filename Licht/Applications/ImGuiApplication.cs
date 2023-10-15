@@ -11,7 +11,7 @@ namespace Licht.Applications;
 public class ImGuiApplication : WindowedApplication
 {
     private bool _frameBegun;
-    public ImGuiContext UiContext;
+    public readonly ImGuiContext UiContext;
     public ImGuiApplication(ILogger logger, VkRenderer renderer, IWindow window) : base(logger, renderer, window)
     {
         UiContext = new ImGuiContext(renderer, window, window.CreateInput());

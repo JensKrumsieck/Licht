@@ -116,6 +116,7 @@ public unsafe class VkImage : IDisposable
             MaxAnisotropy = 1.0f
         };
         _sampler = new Sampler(_device, samplerCreateInfo);
+        _currentLayout = ImageLayout.Undefined;
     }
 
     public void SetData(void* data)
