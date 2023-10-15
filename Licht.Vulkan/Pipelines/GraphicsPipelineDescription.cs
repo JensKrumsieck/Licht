@@ -2,7 +2,7 @@
 
 namespace Licht.Vulkan.Pipelines;
 
-public struct ShaderPassDescription
+public struct GraphicsPipelineDescription
 {
     public PipelineInputAssemblyStateCreateInfo InputAssemblyInfo;
     public PipelineViewportStateCreateInfo ViewportInfo;
@@ -13,9 +13,9 @@ public struct ShaderPassDescription
     public DynamicState[] DynamicStateEnables;
     public PipelineDynamicStateCreateInfo DynamicStateInfo;
     public uint SubPass;
-    public static unsafe ShaderPassDescription Default()
+    public static unsafe GraphicsPipelineDescription Default()
     {
-        var description = new ShaderPassDescription
+        var description = new GraphicsPipelineDescription
         {
             InputAssemblyInfo = new PipelineInputAssemblyStateCreateInfo
             {

@@ -14,10 +14,10 @@ using Silk.NET.Vulkan.Extensions.KHR;
 
 namespace Licht.Vulkan;
 
-public sealed unsafe class VkGraphicsDevice : IDisposable
+public sealed unsafe partial class VkGraphicsDevice : IDisposable
 {
     public static readonly Vk vk = Vk.GetApi();
-
+    
     public PhysicalDevice PhysicalDevice => _physicalDevice;
     public Instance Instance => _instance;
     public Device Device => _device;
@@ -28,8 +28,8 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
     private readonly Instance _instance;
     private readonly IAllocator _allocator;
     private readonly DebugUtilsMessengerEXT _debugMessenger;
-    private readonly PhysicalDevice _physicalDevice;
-    private readonly Device _device;
+    [DelegateMethods] private readonly PhysicalDevice _physicalDevice;
+    [DelegateMethods] private readonly Device _device;
     private readonly Queue _mainQueue;
     private readonly uint _mainQueueIndex;
     private readonly CommandPool _commandPool;
@@ -104,7 +104,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
 #endif
 
         _physicalDevice = _instance.SelectPhysicalDevice();
-        var properties = _physicalDevice.GetProperties();
+        var properties = _physicalDevice.GetPhysicalDeviceProperties();
         _logger?.LogDebug("{DeviceName}", new ByteString(properties.DeviceName));
 
         var enabledDeviceExtensions = new List<string>{ KhrSwapchain.ExtensionName };
@@ -113,7 +113,7 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         var pPEnabledDeviceExtensions = new ByteStringList(enabledDeviceExtensions);
 
         var defaultPriority = 1.0f;
-        var queueFamilies = _physicalDevice.GetQueueFamilyProperties();
+        var queueFamilies = _physicalDevice.GetPhysicalDeviceQueueFamilyProperties();
         var queueFamilyCount = queueFamilies.Length;
 
         //TODO: separate queues for different tasks?
@@ -159,21 +159,8 @@ public sealed unsafe class VkGraphicsDevice : IDisposable
         //bind to allocator
         allocator.Bind(this);
     }
-
-    public void WaitIdle() => _device.WaitIdle();
-    public void WaitForFence(Fence fence) => _device.WaitForFence(fence);
     public Result WaitForQueue() => _mainQueue.WaitForQueue();
-    public Result ResetFence(Fence fence) => _device.ResetFence(fence);
     public Result SubmitMainQueue(SubmitInfo submitInfo, Fence fence) => _mainQueue.QueueSubmit(submitInfo, fence);
-    public CommandBuffer[] AllocateCommandBuffers(uint count) => _device.AllocateCommandBuffers(count, _commandPool);
-    public void FreeCommandBuffers(CommandBuffer[] commandBuffers) => _device.FreeCommandBuffers(commandBuffers, _commandPool);
-    public void FreeCommandBuffer(CommandBuffer commandBuffer) => _device.FreeCommandBuffer(commandBuffer, _commandPool);
-    public Format FindFormat(Format[] candidates, ImageTiling tiling, FormatFeatureFlags formatFeatureFlags) => _physicalDevice.FindFormat(candidates, tiling, formatFeatureFlags);
-    public AllocatedImage CreateImage(ImageCreateInfo info, MemoryPropertyFlags propertyFlags) => _device.CreateImage(_allocator, info, propertyFlags);
-    public AllocatedBuffer CreateBuffer(ulong bufferSize, BufferUsageFlags usageFlags, MemoryPropertyFlags memoryFlags) => _device.CreateBuffer(_allocator, bufferSize, usageFlags, memoryFlags);
-    public CommandBuffer BeginSingleTimeCommands() => _device.BeginSingleTimeCommands(_commandPool);
-    public void EndSingleTimeCommands(CommandBuffer cmd) => _device.EndSingleTimeCommands(cmd, _commandPool, _mainQueue);
-
     public void Dispose()
     {
         _commandPool.Dispose();

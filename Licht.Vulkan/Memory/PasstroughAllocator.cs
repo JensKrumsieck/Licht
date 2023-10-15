@@ -25,7 +25,7 @@ public sealed unsafe class PassthroughAllocator : IAllocator
     public void Bind(VkGraphicsDevice device)
     {
         _state.Context = device;
-        var memoryProperties = device.PhysicalDevice.GetMemoryProperties();
+        var memoryProperties = device.PhysicalDevice.GetPhysicalDeviceMemoryProperties();
         _state.MemoryTypeAllocSizes = (ulong*) Marshal.AllocHGlobal((nint) (sizeof(uint) * memoryProperties.MemoryTypeCount));
     }
 

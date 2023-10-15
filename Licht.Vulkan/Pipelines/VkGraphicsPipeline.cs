@@ -6,10 +6,10 @@ namespace Licht.Vulkan.Pipelines;
 public sealed unsafe class VkGraphicsPipeline : IDisposable
 {
     private readonly VkGraphicsDevice _device;
-    public readonly ShaderEffect Effect;
+    public readonly PipelineEffect Effect;
     public readonly Pipeline Pipeline;
     public PipelineLayout Layout => Effect.EffectLayout;
-    public VkGraphicsPipeline(VkGraphicsDevice device, ShaderEffect effect, ShaderPassDescription description,
+    public VkGraphicsPipeline(VkGraphicsDevice device, PipelineEffect effect, GraphicsPipelineDescription description,
         VertexInfo vertexInfo, RenderPass pass)
     {
         _device = device;
@@ -64,8 +64,5 @@ public sealed unsafe class VkGraphicsPipeline : IDisposable
     
     public static implicit operator Pipeline(VkGraphicsPipeline p) => p.Pipeline;
 
-    public void Dispose()
-    {
-        vk.DestroyPipeline(_device, Pipeline, null);
-    }
+    public void Dispose() => vk.DestroyPipeline(_device, Pipeline, null);
 }

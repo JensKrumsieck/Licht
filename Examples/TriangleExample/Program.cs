@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Windowing;
 
-var opts = ApplicationSpecification.Default;
+var opts = ApplicationSpecification.Default with {ApplicationName = "Triangle"};
 var builder = new ApplicationBuilder(opts);
 
 builder.Services.AddSingleton<ILogger, Logger>();
@@ -23,12 +23,12 @@ sealed class TriangleApplication : WindowedApplication
 {
     private readonly VkGraphicsDevice _device;
     private readonly VkGraphicsPipeline _pipeline;
-    private readonly ShaderEffect _effect;
+    private readonly PipelineEffect _effect;
     public TriangleApplication(ILogger logger, VkGraphicsDevice device, IWindow window, VkRenderer renderer) : base(logger, renderer, window)
     {
         _device = device;
-        var passDescription = ShaderPassDescription.Default();
-        _effect = ShaderEffect.BuildEffect(_device, "./assets/shaders/triangle.vert.spv", "./assets/shaders/triangle.frag.spv", null);
+        var passDescription = GraphicsPipelineDescription.Default();
+        _effect = PipelineEffect.BuildEffect(_device, "./assets/shaders/triangle.vert.spv", "./assets/shaders/triangle.frag.spv", null);
         _pipeline = new VkGraphicsPipeline(_device, _effect, passDescription, default, Renderer.RenderPass!.Value);
     }
 

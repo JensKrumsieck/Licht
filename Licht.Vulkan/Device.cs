@@ -14,7 +14,7 @@ public unsafe partial struct Device
     public void WaitForFence(Fence fence) => vk.WaitForFences(_device, 1u, fence, true, ulong.MaxValue);
     public Result ResetFence(Fence fence) => vk.ResetFences(_device, 1, fence);
     
-    public CommandBuffer[] AllocateCommandBuffers(uint count, CommandPool pool)
+    public CommandBuffer[] AllocateCommandBuffers(CommandPool pool, uint count = 1)
     {
         var commandBuffers = new Silk.NET.Vulkan.CommandBuffer[count];
         var allocInfo = new CommandBufferAllocateInfo
@@ -63,7 +63,7 @@ public unsafe partial struct Device
 
     public CommandBuffer BeginSingleTimeCommands(CommandPool pool)
     {
-        var cmd = AllocateCommandBuffers(1, pool)[0];
+        var cmd = AllocateCommandBuffers(pool)[0];
         cmd.Begin();
         return cmd;
     }
@@ -80,5 +80,35 @@ public unsafe partial struct Device
         queue.QueueSubmit(submitInfo, default);
         queue.WaitForQueue();
         FreeCommandBuffer(cmd, pool);
+    }
+    
+    public DescriptorSetLayout CreateDescriptorSetLayout(DescriptorSetLayoutBinding[] bindings)
+    {
+        fixed (DescriptorSetLayoutBinding* pBindings = bindings)
+        {
+            var layoutCreateInfo = new DescriptorSetLayoutCreateInfo
+            {
+                SType = StructureType.DescriptorSetLayoutCreateInfo,
+                BindingCount = (uint)bindings.Length,
+                PBindings = pBindings
+            };
+            return new DescriptorSetLayout(this, layoutCreateInfo);
+        }
+    }
+    public DescriptorPool CreateDescriptorPool(DescriptorPoolSize[] poolSizes)
+    {
+        fixed (DescriptorPoolSize* pPoolSizes = poolSizes)
+        {
+            var createInfo = new DescriptorPoolCreateInfo
+            {
+                SType = StructureType.DescriptorPoolCreateInfo,
+                PoolSizeCount = (uint) poolSizes.Length,
+                PPoolSizes = pPoolSizes,
+                MaxSets = 1,
+                Flags = DescriptorPoolCreateFlags.FreeDescriptorSetBit
+            };
+            vk.CreateDescriptorPool(_device, createInfo, null, out var descriptorPool);
+            return new DescriptorPool(this, descriptorPool);
+        }
     }
 }

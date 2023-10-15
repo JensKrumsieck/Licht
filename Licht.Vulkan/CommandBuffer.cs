@@ -30,18 +30,18 @@ public unsafe partial struct CommandBuffer
     public void BindGraphicsPipeline(VkGraphicsPipeline pipeline)
         => BindPipeline(PipelineBindPoint.Graphics, pipeline);
 
-    public void BindGraphicsDescriptorSet(DescriptorSet set, ShaderEffect effect) 
+    public void BindGraphicsDescriptorSet(DescriptorSet set, PipelineEffect effect) 
         => BindDescriptorSets(PipelineBindPoint.Graphics, effect.EffectLayout, 0, 1, set, 0, null);
 
-    public void BindGraphicsDescriptorSets(DescriptorSet[] sets, ShaderEffect effect)
+    public void BindGraphicsDescriptorSets(DescriptorSet[] sets, PipelineEffect effect)
     {
         fixed(DescriptorSet* pSets = sets)
             BindDescriptorSets(PipelineBindPoint.Graphics, effect.EffectLayout, 0, (uint)sets.Length, pSets, 0, null);
     }
-    public void BindComputeDescriptorSet(DescriptorSet set, ShaderEffect effect) =>
+    public void BindComputeDescriptorSet(DescriptorSet set, PipelineEffect effect) =>
         BindDescriptorSets(PipelineBindPoint.Compute, effect.EffectLayout, 0, 1, set, 0, null);
 
-    public void BindComputeDescriptorSets(DescriptorSet[] sets, ShaderEffect effect)
+    public void BindComputeDescriptorSets(DescriptorSet[] sets, PipelineEffect effect)
     {
         fixed(DescriptorSet* pSets = sets)
             BindDescriptorSets(PipelineBindPoint.Compute, effect.EffectLayout, 0, (uint)sets.Length, pSets, 0, null);
@@ -51,6 +51,6 @@ public unsafe partial struct CommandBuffer
     public void BindIndexBuffer(Buffer indexBuffer, IndexType indexType) =>
         BindIndexBuffer(indexBuffer, 0, indexType);
 
-    public void PushConstants(ShaderEffect effect, ShaderStageFlags flags, uint offset, uint scale, void* data) =>
+    public void PushConstants(PipelineEffect effect, ShaderStageFlags flags, uint offset, uint scale, void* data) =>
         PushConstants(effect.EffectLayout, flags, offset, scale, data);
 }

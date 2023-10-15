@@ -2,14 +2,14 @@
 
 namespace Licht.Vulkan.Pipelines;
 
-public readonly unsafe struct ShaderEffect : IDisposable
+public readonly unsafe struct PipelineEffect : IDisposable
 {
     private readonly VkGraphicsDevice _device;
     public readonly PipelineLayout EffectLayout;
     public readonly Silk.NET.Vulkan.DescriptorSetLayout[]? SetLayouts;
     public readonly ShaderStage[] Stages;
 
-    private ShaderEffect(VkGraphicsDevice device, PipelineLayout effectLayout, Silk.NET.Vulkan.DescriptorSetLayout[]? setLayouts, ShaderStage[] stages)
+    private PipelineEffect(VkGraphicsDevice device, PipelineLayout effectLayout, Silk.NET.Vulkan.DescriptorSetLayout[]? setLayouts, ShaderStage[] stages)
     {
         _device = device;
         EffectLayout = effectLayout;
@@ -17,40 +17,40 @@ public readonly unsafe struct ShaderEffect : IDisposable
         Stages = stages;
     }
 
-    public static ShaderEffect BuildEffect(VkGraphicsDevice device, string vertexShader, string fragmentShader, Silk.NET.Vulkan.DescriptorSetLayout[]? setLayouts, PushConstantRange? pushRange = null)
+    public static PipelineEffect BuildEffect(VkGraphicsDevice device, string vertexShader, string fragmentShader, Silk.NET.Vulkan.DescriptorSetLayout[]? setLayouts, PushConstantRange? pushRange = null)
     {
         var vertexStage = ShaderStage.FromFile(device, vertexShader, ShaderStageFlags.VertexBit);
         var fragmentStage = ShaderStage.FromFile(device, fragmentShader, ShaderStageFlags.FragmentBit);
         return BuildEffect(device, vertexStage, fragmentStage, setLayouts, pushRange);
     }
     
-    public static ShaderEffect BuildEffect(VkGraphicsDevice device, uint[] vertexShader, uint[] fragmentShader, Silk.NET.Vulkan.DescriptorSetLayout[]? setLayouts, PushConstantRange? pushRange = null)
+    public static PipelineEffect BuildEffect(VkGraphicsDevice device, uint[] vertexShader, uint[] fragmentShader, Silk.NET.Vulkan.DescriptorSetLayout[]? setLayouts, PushConstantRange? pushRange = null)
     {
         var vertexStage = ShaderStage.FromUInts(device, vertexShader, ShaderStageFlags.VertexBit);
         var fragmentStage = ShaderStage.FromUInts(device, fragmentShader, ShaderStageFlags.FragmentBit);
         return BuildEffect(device, vertexStage, fragmentStage, setLayouts, pushRange);
     }
 
-    private static ShaderEffect BuildEffect(VkGraphicsDevice device, ShaderStage vertexStage, ShaderStage fragmentStage,
+    private static PipelineEffect BuildEffect(VkGraphicsDevice device, ShaderStage vertexStage, ShaderStage fragmentStage,
         Silk.NET.Vulkan.DescriptorSetLayout[]? setLayouts, PushConstantRange? pushRange = null)
     {
         var stages = new[] {vertexStage, fragmentStage};
         var pipelineLayout = CreatePipelineLayout(device, setLayouts, pushRange ?? new PushConstantRange());
-        return new ShaderEffect(device, pipelineLayout, setLayouts, stages);
+        return new PipelineEffect(device, pipelineLayout, setLayouts, stages);
     }
 
-    public static ShaderEffect BuildComputeEffect(VkGraphicsDevice device, string computeShader,
+    public static PipelineEffect BuildComputeEffect(VkGraphicsDevice device, string computeShader,
         Silk.NET.Vulkan.DescriptorSetLayout[]? setLayouts, PushConstantRange? pushRange = null)
     {
         var stage = ShaderStage.FromFile(device, computeShader, ShaderStageFlags.ComputeBit);
         return BuildComputeEffect(device, stage, setLayouts, pushRange);
     }
     
-    private static ShaderEffect BuildComputeEffect(VkGraphicsDevice device, ShaderStage computeStage, Silk.NET.Vulkan.DescriptorSetLayout[]? setLayouts, PushConstantRange? pushRange = null)
+    private static PipelineEffect BuildComputeEffect(VkGraphicsDevice device, ShaderStage computeStage, Silk.NET.Vulkan.DescriptorSetLayout[]? setLayouts, PushConstantRange? pushRange = null)
     {
         var stages = new[] {computeStage};
         var pipelineLayout = CreatePipelineLayout(device, setLayouts, pushRange ?? new PushConstantRange());
-        return new ShaderEffect(device, pipelineLayout, setLayouts, stages);
+        return new PipelineEffect(device, pipelineLayout, setLayouts, stages);
     }
     
     private static PipelineLayout CreatePipelineLayout(VkGraphicsDevice device, Silk.NET.Vulkan.DescriptorSetLayout[]? setLayouts, PushConstantRange pushRange)

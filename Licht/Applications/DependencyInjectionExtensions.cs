@@ -12,6 +12,7 @@ public static class DependencyInjectionExtensions
     {
         var options = WindowOptions.DefaultVulkan with
         {
+            Title = opts.ApplicationName,
             Size = new Vector2D<int>(opts.Width, opts.Height),
             WindowState = opts.IsFullscreen ? WindowState.Fullscreen : WindowState.Normal
         };

@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 namespace Licht.Vulkan.Generator;
 public static class GeneratorUtilities
 {
+    //string utils
     private const string Indent = "    ";
     public static string Space(int spacers)
     {
@@ -17,6 +18,7 @@ public static class GeneratorUtilities
 
     public static string LowerCaseFirst(this string input) => input == "" ? "" : char.ToLower(input[0]) + input.Substring(1);
 
+    //assembly utils
     public static void AppendExtensionLoad(this StringBuilder sb, bool deviceExtension, string apiName)
     {
         var ext = apiName.StartsWith("Khr") ? "KHR" : "EXT";
@@ -43,16 +45,24 @@ public static class GeneratorUtilities
         var vk = context.Compilation.ExternalReferences.GetReferenceByString($"Silk.NET.Vulkan.Extensions.{type}.dll")!;
         return (IAssemblySymbol)context.Compilation.GetAssemblyOrModuleSymbol(vk)!;
     }
-
-    public static IMethodSymbol? GetConstructor(this INamedTypeSymbol api, string typeName)
-        => api.GetMembers($"Create{typeName}").Select(s => (IMethodSymbol)s).FirstOrDefault(s => !s.OriginalDefinition.ToDisplayString().Contains("*"));
-
     public static PortableExecutableReference? GetReferenceByString(this ImmutableArray<MetadataReference> haystack, string needle)
     {
         return haystack.Where(s => s is PortableExecutableReference)
                         .Cast<PortableExecutableReference>()
                         .FirstOrDefault(
-                                r => r.GetMetadata() is AssemblyMetadata asmMetaData 
+                                r => r.GetMetadata() is AssemblyMetadata asmMetaData
                                 && asmMetaData.GetModules()[0].Name == needle);
     }
+
+    //symbol utils
+    public static IMethodSymbol? GetConstructor(this ITypeSymbol api, string typeName)
+        => api.GetMembers($"Create{typeName}").Select(s => (IMethodSymbol)s).FirstOrDefault(s => !s.OriginalDefinition.ToDisplayString().Contains("*"));
+
+    public static IEnumerable<IFieldSymbol> GetAllFields(this ITypeSymbol type) => type.GetMembers().Where(m => m is IFieldSymbol f && f.Kind == SymbolKind.Field).Cast<IFieldSymbol>();
+    public static IEnumerable<IMethodSymbol> GetAllMethods(this ITypeSymbol type) => type.GetMembers().Where(m => m is IMethodSymbol && m.Kind == SymbolKind.Method).Cast<IMethodSymbol>();
+    public static bool HasAttribute(this IFieldSymbol fieldSymbol, string fullQualifiedName) => fieldSymbol.GetAttributes().Any(ad => ad.AttributeClass!.ToDisplayString() == fullQualifiedName);
+    public static List<string> BuildArgumentList(this IEnumerable<IParameterSymbol> parameters) => parameters.Select(s => (s.RefKind != RefKind.None ? s.RefKind.ToString().LowerCaseFirst() + " " : "") + s.Name).ToList();
+    public static string RemoveNamespace(this ISymbol symbol, string @namespace) => symbol.ToDisplayString().Replace(@namespace + ".", "");
+    public static IEnumerable<IGrouping<INamedTypeSymbol, IFieldSymbol>> GroupByContainingType(this IEnumerable<IFieldSymbol> fields) => fields.GroupBy<IFieldSymbol, INamedTypeSymbol>(f => f.ContainingType, SymbolEqualityComparer.Default);
+    public static string ToNamespaceString(this ITypeSymbol symbol) => symbol.ContainingNamespace.ToDisplayString();
 }

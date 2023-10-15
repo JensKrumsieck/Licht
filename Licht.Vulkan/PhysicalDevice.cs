@@ -11,10 +11,10 @@ public readonly unsafe partial struct PhysicalDevice
         _physicalDevice = gpu;
     }
 
-    public readonly PhysicalDeviceProperties GetProperties() => vk.GetPhysicalDeviceProperties(this);
-    public readonly PhysicalDeviceProperties2 GetProperties2() => vk.GetPhysicalDeviceProperties2(this);
-    public readonly PhysicalDeviceMemoryProperties GetMemoryProperties() => vk.GetPhysicalDeviceMemoryProperties(this);
-    public readonly QueueFamilyProperties[] GetQueueFamilyProperties()
+    public readonly PhysicalDeviceProperties GetPhysicalDeviceProperties() => vk.GetPhysicalDeviceProperties(this);
+    public readonly PhysicalDeviceProperties2 GetPhysicalDeviceProperties2() => vk.GetPhysicalDeviceProperties2(this);
+    public readonly PhysicalDeviceMemoryProperties GetPhysicalDeviceMemoryProperties() => vk.GetPhysicalDeviceMemoryProperties(this);
+    public readonly QueueFamilyProperties[] GetPhysicalDeviceQueueFamilyProperties()
     {
         var count = 0u;
         vk.GetPhysicalDeviceQueueFamilyProperties(this, &count, null);
