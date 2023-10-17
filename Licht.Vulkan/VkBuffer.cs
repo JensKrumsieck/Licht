@@ -88,7 +88,7 @@ public unsafe class VkBuffer : IDisposable
         _device.EndSingleTimeCommands(cmd);
     }
 
-    public void CopyToBuffer(VkBuffer vkBuffer)
+    public void CopyToBufferImmediate(VkBuffer vkBuffer)
     {
         var cmd = _device.BeginSingleTimeCommands();
         var copyRegion = new BufferCopy {Size = BufferSize, SrcOffset = 0, DstOffset = 0};
