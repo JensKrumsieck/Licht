@@ -8,6 +8,7 @@ using Silk.NET.Windowing;
 using DefaultEcs;
 using Licht.Rendering;
 using Licht.Scene;
+using Licht.Vulkan.Pipelines;
 
 var opts = ApplicationSpecification.Default with {ApplicationName = "Triangle"};
 var builder = new ApplicationBuilder(opts);
@@ -27,6 +28,10 @@ class Engine : WindowedApplication
 
     public Engine(ILogger logger, VkGraphicsDevice device, VkRenderer renderer, IWindow window) : base(logger, renderer, window)
     {
+        var compiler = new PipelineCompiler(device);
+        var vertStage = compiler.CompileShaderBytes("./assets/shaders/lit.vert");
+        var fragStage = compiler.CompileShaderBytes("./assets/shaders/lit.frag");
+        
         var suzanne = MeshImporter.FromFile("./assets/models/suzanne.fbx")[0];
         var e = _scene.CreateEntity(); 
         e.Set(new TransformComponent());

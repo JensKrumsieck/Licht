@@ -14,6 +14,8 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1" />
         <PackageReference Include="Silk.NET.Input" Version="2.17.1" />
         <PackageReference Include="Silk.NET.Input.Extensions" Version="2.17.1" />
+        <PackageReference Include="Silk.NET.Shaderc" Version="2.17.1-build3956.0" />
+        <PackageReference Include="Silk.NET.SPIRV.Reflect" Version="2.17.1-build3956.0" />
         <PackageReference Include="Silk.NET.Windowing" Version="2.17.1" />
         <PackageReference Include="Silk.NET.Vulkan" Version="2.17.1" />
         <PackageReference Include="Silk.NET.Vulkan.Extensions.EXT" Version="2.17.1" />
