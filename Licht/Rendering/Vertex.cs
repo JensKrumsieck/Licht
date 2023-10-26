@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Licht.Vulkan.Extensions;
 using Licht.Vulkan.Pipelines;
 using Silk.NET.Vulkan;
 
@@ -10,7 +9,7 @@ namespace Licht.Rendering;
 public struct Vertex
 {
     public Vector3 Position;
-    public Vector3 Color;
+    public Vector4 Color;
     public Vector3 Normal;
     public Vector2 TextureCoordinate;
 
@@ -35,7 +34,7 @@ public struct Vertex
         {
             Binding = 0,
             Location = 1,
-            Format = Format.R32G32B32Sfloat,
+            Format = Format.R32G32B32A32Sfloat,
             Offset = (uint) Marshal.OffsetOf<Vertex>(nameof(Color))
         };
         attributes[2] = new VertexInputAttributeDescription

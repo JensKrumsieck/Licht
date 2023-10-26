@@ -44,6 +44,9 @@ public static unsafe class MeshImporter
                 var pTex3 = pMesh->MTextureCoords[0][i];
                 vertex.TextureCoordinate = new Vector2(pTex3.X, pTex3.Y);
             }
+
+            if (pMesh->MColors[0] != null) vertex.Color = pMesh->MColors[0][i];
+            if(vertex.Color == Vector4.Zero) vertex.Color = Vector4.One;
             vertices.Add(vertex);
         }
 
