@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Windowing;
 using DefaultEcs;
+using DefaultEcs.Threading;
 using Licht.Rendering;
 using Licht.Scene;
 using Licht.Vulkan.Pipelines;
@@ -38,6 +39,7 @@ unsafe class Engine : WindowedApplication
     private readonly World _scene = new();
     private readonly DescriptorSet _descriptorSet;
     private readonly VkBuffer _globalUbo;
+    private readonly RenderingSystem _renderingSystem;
 
     public Engine(ILogger logger, VkGraphicsDevice device, VkRenderer renderer, IWindow window) : base(logger, renderer, window)
     {
@@ -63,7 +65,7 @@ unsafe class Engine : WindowedApplication
         {
             StageFlags = ShaderStageFlags.VertexBit | ShaderStageFlags.FragmentBit,
             Offset = 0,
-            Size = (uint) sizeof(Push)
+            Size = (uint) sizeof(TransformationNormalPushConstants)
         };
         var passDescription = GraphicsPipelineDescription.Default();
         _effect = PipelineEffect.BuildEffect(_device, "./assets/shaders/lit.vert.spv", "./assets/shaders/lit.frag.spv", new[]{_descriptorSetLayout}, pushRange);
@@ -73,6 +75,7 @@ unsafe class Engine : WindowedApplication
         var e = _scene.CreateEntity(); 
         e.Set(new TransformComponent());
         e.Set(new MeshComponent(suzanne.Process(device)));
+        _renderingSystem = new RenderingSystem(_effect, _scene, new DefaultParallelRunner(1));
     }
 
     public override void DrawFrame(CommandBuffer cmd, float deltaTime)
@@ -90,19 +93,7 @@ unsafe class Engine : WindowedApplication
         _globalUbo.Map(ref dest);
         _globalUbo.WriteToBuffer(&ubo, dest);
         _globalUbo.Unmap();
-        //could be AEntitySetSystem<T>
-        var rendered = _scene.GetEntities().With(typeof(TransformComponent), typeof(MeshComponent)).AsSet();
-        foreach (var e in rendered.GetEntities())
-        {
-            ref var t = ref e.Get<TransformComponent>();
-            ref var m = ref e.Get<MeshComponent>();
-
-            var pushData = new Push {Model = t.TransformationMatrix(), Normal = t.NormalMatrix()};
-            cmd.PushConstants(_effect, ShaderStageFlags.FragmentBit | ShaderStageFlags.VertexBit, 0, (uint)sizeof(Push), &pushData);
-            //push constant t
-            m.Mesh.Bind(cmd);
-            m.Mesh.Draw(cmd);
-        }
+        _renderingSystem.Update(cmd);
     }
 
     public override void Release()
