@@ -154,4 +154,20 @@ public unsafe partial struct Device
         vk.UpdateDescriptorSets(_device, 1, &write, 0, default);
     }
     
+    public void UpdateDescriptorSetBuffer(ref DescriptorSet set, DescriptorBufferInfo bufferInfo, DescriptorType type,
+        uint binding = 0)
+    {
+        var write = new WriteDescriptorSet
+        {
+            SType = StructureType.WriteDescriptorSet,
+            DstSet = set,
+            DstBinding = binding,
+            DstArrayElement = 0,
+            DescriptorCount = 1,
+            PBufferInfo = &bufferInfo,
+            DescriptorType = type
+        };
+        vk.UpdateDescriptorSets(_device, 1, &write, 0, default);
+    }
+    
 }
