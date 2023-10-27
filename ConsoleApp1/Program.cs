@@ -87,7 +87,9 @@ unsafe class Engine : WindowedApplication
         for (var i = 0; i < numLights; i++)
         {
             e = _scene.CreateEntity();
-            e.Set(new TransformComponent {Translation = new Vector3(i*2, 1, i)});
+            var rotation = Matrix4x4.CreateRotationY(i * MathF.PI / numLights * 2f);
+            var rotationDir = Vector4.Transform(new Vector4(-1, -1, -1, 1), rotation);
+            e.Set(new TransformComponent {Translation = new Vector3(rotationDir.X, rotationDir.Y, rotationDir.Z)});
             e.Set(new PointLightComponent(1, new Vector3(i/(float)numLights, 1, 1)));
         }
         _renderingSystem = new RenderingSystem(_effect, _scene, new DefaultParallelRunner(1));
