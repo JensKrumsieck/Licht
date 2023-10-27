@@ -13,10 +13,8 @@ namespace Licht.Scene;
 public class RenderingSystem : AEntitySetSystem<CommandBuffer>
 {
     private readonly PipelineEffect _effect;
-    public RenderingSystem(PipelineEffect effect, World world, IParallelRunner runner) : base(world, runner)
-    {
-        _effect = effect;
-    }
+    public RenderingSystem(PipelineEffect effect, World world, IParallelRunner runner) : base(world, runner) 
+        => _effect = effect;
 
     protected override unsafe void Update(CommandBuffer cmd, in Entity entity)
     {

@@ -39,14 +39,17 @@ unsafe class Engine : WindowedApplication
     private readonly World _scene = new();
     private readonly DescriptorSet _descriptorSet;
     private readonly VkBuffer _globalUbo;
+    private readonly VkBuffer _lightsBuffer;
     private readonly RenderingSystem _renderingSystem;
-
+    private readonly PointLightRenderingSystem _pointLightSystem;
+    
     public Engine(ILogger logger, VkGraphicsDevice device, VkRenderer renderer, IWindow window) : base(logger, renderer, window)
     {
         _device = device;
         var poolSizes = new DescriptorPoolSize[]
         {
-            new() {Type = DescriptorType.UniformBuffer, DescriptorCount = 3}
+            new() {Type = DescriptorType.UniformBuffer, DescriptorCount = 3},
+            new() {Type = DescriptorType.StorageBuffer, DescriptorCount = 1}
         };
         _pool = _device.CreateDescriptorPool(poolSizes, 3);
         var binding0 = new DescriptorSetLayoutBinding
@@ -56,11 +59,16 @@ unsafe class Engine : WindowedApplication
             DescriptorType = DescriptorType.UniformBuffer,
             StageFlags = ShaderStageFlags.FragmentBit | ShaderStageFlags.VertexBit
         };
-        _descriptorSetLayout = _device.CreateDescriptorSetLayout(new[] {binding0});
+        var binding1 = binding0 with
+        {
+            Binding = 1,
+            DescriptorType = DescriptorType.StorageBuffer,
+        };
+        _descriptorSetLayout = _device.CreateDescriptorSetLayout(new[] {binding0, binding1});
         _descriptorSet = _pool.AllocateDescriptorSet(_descriptorSetLayout);
         _globalUbo = new VkBuffer(_device, (ulong) sizeof(Ubo), BufferUsageFlags.UniformBufferBit,
-            MemoryPropertyFlags.HostVisibleBit);
-        _device.UpdateDescriptorSetBuffer(ref _descriptorSet, _globalUbo.DescriptorInfo(), DescriptorType.UniformBuffer, 0);
+            MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+        _globalUbo.UpdateDescriptorSet(ref _descriptorSet, DescriptorType.UniformBuffer, 0);
         var pushRange = new PushConstantRange
         {
             StageFlags = ShaderStageFlags.VertexBit | ShaderStageFlags.FragmentBit,
@@ -75,12 +83,25 @@ unsafe class Engine : WindowedApplication
         var e = _scene.CreateEntity(); 
         e.Set(new TransformComponent());
         e.Set(new MeshComponent(suzanne.Process(device)));
+        var numLights = 100;
+        for (var i = 0; i < numLights; i++)
+        {
+            e = _scene.CreateEntity();
+            e.Set(new TransformComponent {Translation = new Vector3(i*2, 1, i)});
+            e.Set(new PointLightComponent(1, new Vector3(i/(float)numLights, 1, 1)));
+        }
         _renderingSystem = new RenderingSystem(_effect, _scene, new DefaultParallelRunner(1));
+        _lightsBuffer = new VkBuffer(_device, (ulong) (sizeof(PointLightData) * numLights),
+                                     BufferUsageFlags.StorageBufferBit, 
+                                     MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+        _lightsBuffer.UpdateDescriptorSet(ref _descriptorSet, DescriptorType.StorageBuffer, 1);
+        _pointLightSystem = new PointLightRenderingSystem(_lightsBuffer, _scene, new DefaultParallelRunner(1));
     }
 
     public override void DrawFrame(CommandBuffer cmd, float deltaTime)
     {
         base.DrawFrame(cmd, deltaTime);
+        
         cmd.BindGraphicsPipeline(_pipeline);
         cmd.BindGraphicsDescriptorSet(_descriptorSet, _effect);
         var ubo = new Ubo
@@ -89,10 +110,8 @@ unsafe class Engine : WindowedApplication
             InverseView = Matrix4x4.Identity,
             Projection = Matrix4x4.Identity
         };
-        var dest = IntPtr.Zero.ToPointer();
-        _globalUbo.Map(ref dest);
-        _globalUbo.WriteToBuffer(&ubo, dest);
-        _globalUbo.Unmap();
+        _globalUbo.WriteToBuffer(&ubo);
+        _pointLightSystem.Update(deltaTime);
         _renderingSystem.Update(cmd);
     }
 
@@ -111,6 +130,7 @@ unsafe class Engine : WindowedApplication
         _descriptorSetLayout.Dispose();
         _pool.Dispose();
         _globalUbo.Dispose();
+        _lightsBuffer.Dispose();
         _pipeline.Dispose();        
         _effect.Dispose();
     }

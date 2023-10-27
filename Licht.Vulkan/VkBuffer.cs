@@ -44,6 +44,14 @@ public unsafe class VkBuffer : IDisposable
         AllocatedBuffer.Allocation.Unmap();
     }
 
+    public void WriteToBuffer(void* data, ulong size = Vk.WholeSize, ulong offset = 0)
+    {
+        var dest = IntPtr.Zero.ToPointer();
+        Map(ref dest);
+        WriteToBuffer(data, dest, size, offset);
+        Unmap();
+    }
+
     public void WriteToBuffer(void* data, void* destination, ulong size = Vk.WholeSize, ulong offset = 0)
     {
         if(size == Vk.WholeSize) System.Buffer.MemoryCopy(data, destination, _size, _size);
@@ -116,6 +124,9 @@ public unsafe class VkBuffer : IDisposable
     
     public DescriptorBufferInfo DescriptorInfo(ulong size = Vk.WholeSize, ulong offset = 0) => new(AllocatedBuffer.Buffer, offset, size);
 
+    public void UpdateDescriptorSet(ref DescriptorSet set, DescriptorType type, uint binding) =>
+        _device.UpdateDescriptorSetBuffer(ref set, this.DescriptorInfo(), type, binding);
+    
     public static implicit operator Silk.NET.Vulkan.Buffer(VkBuffer b) => b.AllocatedBuffer.Buffer;
 
     public void Dispose()
